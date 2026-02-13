@@ -1,0 +1,45 @@
+{
+  "chart": {
+    "title": "Life expectancy",
+    "subtitle": "The [period life expectancy](#dod:period-life-expectancy) at birth, in a given year.",
+    "citation": "Human Mortality Database (2025); UN, World Population Prospects (2024)",
+    "originalChartUrl": "https://ourworldindata.org/grapher/life-expectancy-hmd-unwpp?v=1&csvType=full&useColumnShortNames=false",
+    "selection": [
+      "France",
+      "South Africa",
+      "Nigeria",
+      "China",
+      "Australia",
+      "Philippines",
+      "Mexico",
+      "United States",
+      "Japan",
+      "Sweden"
+    ]
+  },
+  "columns": {
+    "Life expectancy - Sex: total - Age: 0 - Type: period": {
+      "titleShort": "Life expectancy at birth",
+      "titleLong": "Life expectancy at birth - HMD – totals, period tables",
+      "descriptionShort": "The period life expectancy at birth among totals, in a given year.",
+      "descriptionKey": [
+        "Period life expectancy is a metric that summarizes death rates across all age groups in one particular year.",
+        "For a given year, it represents the average lifespan for a hypothetical group of people, if they experienced the same age-specific death rates throughout their whole lives as the age-specific death rates seen in that particular year.",
+        "Prior to 1950, we use HMD (2025) data. From 1950 onwards, we use UN WPP (2024) data."
+      ],
+      "shortUnit": "years",
+      "unit": "years",
+      "timespan": "1751-2023",
+      "type": "Numeric",
+      "owidVariableId": 1118561,
+      "shortName": "life_expectancy__sex_total__age_0__type_period",
+      "lastUpdated": "2025-10-22",
+      "nextUpdate": "2026-10-22",
+      "citationShort": "Human Mortality Database (2025); UN, World Population Prospects (2024) – processed by Our World in Data",
+      "citationLong": "Human Mortality Database (2025); UN, World Population Prospects (2024) – processed by Our World in Data. “Life expectancy at birth – HMD – totals, period tables” [dataset]. Human Mortality Database, “Human Mortality Database”; United Nations, “World Population Prospects” [original data].",
+      "fullMetadata": "https://api.ourworldindata.org/v1/indicators/1118561.metadata.json"
+    }
+  },
+  "dateDownloaded": "2026-02-13",
+  "activeFilters": {}
+}
