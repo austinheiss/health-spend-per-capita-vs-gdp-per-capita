@@ -47,7 +47,7 @@ export class Histogram {
     vis.yAxisGroup = vis.chart.append("g");
 
     // define axis labels
-    vis.svg
+    vis.xAxisLabel = vis.svg
       .append("text")
       .attr("x", vis.config.containerWidth / 2)
       .attr("y", vis.config.containerHeight - 10)
@@ -65,6 +65,12 @@ export class Histogram {
     vis.barsGroup = vis.chart.append("g"); // layer for bar marks
 
     vis.updateVis(); // trigger initial data processing and rendering
+  }
+
+  setValueKey(valueKey) {
+    this.config.valueKey = valueKey;
+    this.xAxisLabel.text(valueKey);
+    this.updateVis();
   }
 
   updateVis() {

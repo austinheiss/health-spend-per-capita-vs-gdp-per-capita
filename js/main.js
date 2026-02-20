@@ -12,7 +12,7 @@ d3.csv("./data/pre_processed/combined_2022.csv", d3.autoType).then((data) => {
     data
   );
 
-  new Histogram(
+  const histogram = new Histogram(
     {
       parentElement: "#histogram",
       containerWidth: 900,
@@ -22,4 +22,9 @@ d3.csv("./data/pre_processed/combined_2022.csv", d3.autoType).then((data) => {
     },
     data
   );
+
+  const metricSelect = document.querySelector("#histogram-metric");
+  metricSelect.addEventListener("change", (event) => {
+    histogram.setValueKey(event.target.value);
+  });
 });
