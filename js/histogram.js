@@ -1,0 +1,118 @@
+export class Histogram {
+  constructor(config, data) {
+    this.config = {
+      parentElement: config.parentElement,
+      containerWidth: config.containerWidth || 900,
+      containerHeight: config.containerHeight || 320,
+      margin: config.margin || { top: 20, right: 20, bottom: 45, left: 55 },
+      valueKey: config.valueKey,
+      binCount: config.binCount || 20,
+    };
+
+    this.data = data;
+    this.initVis();
+  }
+
+  initVis() {
+    const vis = this;
+
+    // inner plotting area (chart area excluding margins)
+    vis.width =
+      vis.config.containerWidth - vis.config.margin.left - vis.config.margin.right;
+    vis.height =
+      vis.config.containerHeight - vis.config.margin.top - vis.config.margin.bottom;
+
+    // bind to existing SVG element in the DOM
+    vis.svg = d3
+      .select(vis.config.parentElement)
+      .attr("width", vis.config.containerWidth)
+      .attr("height", vis.config.containerHeight);
+
+    // main translated group so bars and axes use inner coordinates
+    vis.chart = vis.svg
+      .append("g")
+      .attr(
+        "transform",
+        `translate(${vis.config.margin.left},${vis.config.margin.top})`
+      );
+
+    // scales are defined once, then domains are updated in updateVis()
+    vis.xScale = d3.scaleLinear().range([0, vis.width]);
+    vis.yScale = d3.scaleLinear().range([vis.height, 0]); // y is inverted so taller bars grow upward
+
+    // define axis containers
+    vis.xAxisGroup = vis.chart
+      .append("g")
+      .attr("transform", `translate(0,${vis.height})`); // put x-axis at the bottom of the inner chart area
+    vis.yAxisGroup = vis.chart.append("g");
+
+    // define axis labels
+    vis.svg
+      .append("text")
+      .attr("x", vis.config.containerWidth / 2)
+      .attr("y", vis.config.containerHeight - 10)
+      .attr("text-anchor", "middle")
+      .text(vis.config.valueKey);
+
+    vis.svg
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -vis.config.containerHeight / 2)
+      .attr("y", 16)
+      .attr("text-anchor", "middle")
+      .text("Count of countries");
+
+    vis.barsGroup = vis.chart.append("g"); // layer for bar marks
+
+    vis.updateVis(); // trigger initial data processing and rendering
+  }
+
+  updateVis() {
+    const vis = this;
+
+    // keep only valid numeric values for the selected measure
+    const values = vis.data
+      .map((d) => d[vis.config.valueKey])
+      .filter((v) => v != null && !Number.isNaN(v));
+
+    // map data domain to pixel range on x-axis
+    vis.xScale.domain(d3.extent(values)).nice();
+
+    // bin values into equal-width buckets across the x domain
+    vis.bins = d3
+      .bin()
+      .domain(vis.xScale.domain())
+      .thresholds(vis.config.binCount)(values);
+
+    // y domain is counts per bin
+    vis.yScale
+      .domain([0, d3.max(vis.bins, (d) => d.length)])
+      .nice();
+
+    vis.renderVis();
+  }
+
+  renderVis() {
+    const vis = this;
+
+    // draw axes from current scales
+    vis.xAxisGroup.call(d3.axisBottom(vis.xScale));
+    vis.yAxisGroup.call(d3.axisLeft(vis.yScale).ticks(6).tickFormat(d3.format("d")));
+
+    const bars = vis.barsGroup.selectAll("rect").data(vis.bins); // data join for bars
+
+    bars
+      .enter()
+      .append("rect")
+      .merge(bars) // merge enter and update selections so both are styled the same way
+      .attr("x", (d) => vis.xScale(d.x0) + 1)
+      .attr("y", (d) => vis.yScale(d.length))
+      .attr("width", (d) =>
+        Math.max(0, vis.xScale(d.x1) - vis.xScale(d.x0) - 1)
+      )
+      .attr("height", (d) => vis.height - vis.yScale(d.length))
+      .attr("fill", "#60a5fa");
+
+    bars.exit().remove(); // remove bars with no corresponding bin (for updates/filters)
+  }
+}

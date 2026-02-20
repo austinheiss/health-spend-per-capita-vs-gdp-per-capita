@@ -1,4 +1,5 @@
 import { Scatterplot } from "./scatterplot.js";
+import { Histogram } from "./histogram.js";
 
 // Load data once, then hand it to the chart class.
 d3.csv("./data/pre_processed/combined_2022.csv", d3.autoType).then((data) => {
@@ -7,6 +8,17 @@ d3.csv("./data/pre_processed/combined_2022.csv", d3.autoType).then((data) => {
       parentElement: "#chart",
       containerWidth: 900,
       containerHeight: 550,
+    },
+    data
+  );
+
+  new Histogram(
+    {
+      parentElement: "#histogram",
+      containerWidth: 900,
+      containerHeight: 320,
+      valueKey: "Healthcare expenditure (% of GDP)",
+      binCount: 18,
     },
     data
   );
