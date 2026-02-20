@@ -7,6 +7,7 @@ export class Histogram {
       margin: config.margin || { top: 20, right: 20, bottom: 45, left: 55 },
       valueKey: config.valueKey,
       binCount: config.binCount || 20,
+      tooltipPadding: config.tooltipPadding || 12,
     };
 
     this.data = data;
@@ -63,6 +64,7 @@ export class Histogram {
       .text("Count of countries");
 
     vis.barsGroup = vis.chart.append("g"); // layer for bar marks
+    vis.tooltip = d3.select("#tooltip");
 
     vis.updateVis(); // trigger initial data processing and rendering
   }
@@ -117,7 +119,24 @@ export class Histogram {
         Math.max(0, vis.xScale(d.x1) - vis.xScale(d.x0) - 1)
       )
       .attr("height", (d) => vis.height - vis.yScale(d.length))
-      .attr("fill", "#60a5fa");
+      .attr("fill", "#60a5fa")
+      .on("mouseover", (event, d) => {
+        vis.tooltip
+          .style("display", "block")
+          .html(
+            `${vis.config.valueKey}<br>` +
+              `Range: ${d.x0.toFixed(2)} - ${d.x1.toFixed(2)}<br>` +
+              `Countries: ${d.length}`
+          );
+      })
+      .on("mousemove", (event) => {
+        vis.tooltip
+          .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
+          .style("top", `${event.pageY + vis.config.tooltipPadding}px`);
+      })
+      .on("mouseleave", () => {
+        vis.tooltip.style("display", "none");
+      });
 
     bars.exit().remove(); // remove bars with no corresponding bin (for updates/filters)
   }

@@ -5,6 +5,7 @@ export class Scatterplot {
       containerWidth: config.containerWidth || 900,
       containerHeight: config.containerHeight || 550,
       margin: config.margin || { top: 20, right: 20, bottom: 60, left: 70 },
+      tooltipPadding: config.tooltipPadding || 12,
     };
 
     this.data = data;
@@ -61,6 +62,7 @@ export class Scatterplot {
       .text(vis.yKey);
 
     vis.pointsGroup = vis.chart.append("g"); // layer for point marks
+    vis.tooltip = d3.select("#tooltip");
 
     vis.updateVis(); // trigger initial data processing and rendering
   }
@@ -102,12 +104,23 @@ export class Scatterplot {
       .attr("cy", (d) => vis.yScale(d[vis.yKey]))
       .attr("r", 3)
       .attr("fill", "#2563eb")
-      .selectAll("title")
-      .data((d) => [d]) // wrap in an array because join expects an array for each selected parent, needed for tooltip updates
-      .join("title")
-      .text(
-        (d) => `${d.Entity}: ${d[vis.yKey]} years, ${d[vis.xKey]}% GDP`
-      );
+      .on("mouseover", (event, d) => {
+        vis.tooltip
+          .style("display", "block")
+          .html(
+            `<strong>${d.Entity}</strong><br>` +
+              `Life expectancy: ${d[vis.yKey].toFixed(2)} years<br>` +
+              `Healthcare spend: ${d[vis.xKey].toFixed(2)}% GDP`
+          );
+      })
+      .on("mousemove", (event) => {
+        vis.tooltip
+          .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
+          .style("top", `${event.pageY + vis.config.tooltipPadding}px`);
+      })
+      .on("mouseleave", () => {
+        vis.tooltip.style("display", "none");
+      });
 
     circles.exit().remove(); // remove circles that no longer have data (for filters, date updates, etc...)
   }
