@@ -20,20 +20,25 @@
   <p>Year displayed: 2022</p>
 </header>
 <main>
-  <svg id="chart" width="900" height="550"></svg>
-  <label for="histogram-metric">Histogram metric:</label>
-  <select id="histogram-metric">
-    <option value="Healthcare expenditure (% of GDP)">Healthcare expenditure (% of GDP)</option>
-    <option value="Life expectancy at birth (years)">Life expectancy at birth (years)</option>
-  </select>
-  <svg id="histogram" width="900" height="320"></svg>
-  <label for="chloropleth-metric">Chloropleth metric:</label>
-  <select id="chloropleth-metric">
-    <option value="Healthcare expenditure (% of GDP)">Healthcare expenditure (% of GDP)</option>
-    <option value="Life expectancy at birth (years)">Life expectancy at birth (years)</option>
-  </select>
-  <h2 id="chloropleth-title">Healthcare expenditure by country (% of GDP)</h2>
-  <svg id="chloropleth" width="900" height="550"></svg>
+  <div id="scatter-panel" class="chart-container scatter">
+    <svg id="chart"></svg>
+  </div>
+  <div id="histogram-health-panel" class="chart-container">
+    <h2 class="panel-title">Healthcare expenditure histogram (% of GDP)</h2>
+    <svg id="histogram-health"></svg>
+  </div>
+  <div id="histogram-life-panel" class="chart-container">
+    <h2 class="panel-title">Life expectancy histogram (years)</h2>
+    <svg id="histogram-life"></svg>
+  </div>
+  <div id="chloropleth-health-panel" class="chart-container">
+    <h2 class="panel-title">Healthcare expenditure by country (% of GDP)</h2>
+    <svg id="chloropleth-health"></svg>
+  </div>
+  <div id="chloropleth-life-panel" class="chart-container">
+    <h2 class="panel-title">Life expectancy by country (years)</h2>
+    <svg id="chloropleth-life"></svg>
+  </div>
 </main>
 <div id="tooltip"></div>
 <script type="module" src="./js/main.js"></script>

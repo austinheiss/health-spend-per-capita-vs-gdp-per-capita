@@ -10,6 +10,7 @@ export class Chloropleth {
 
     this.data = data;
     this.valueKey = config.valueKey || "Healthcare expenditure (% of GDP)";
+    this.gradientId = `chloropleth-gradient-${this.config.parentElement.replace("#", "")}`;
 
     this.initVis();
   }
@@ -136,6 +137,25 @@ export class Chloropleth {
     this.updateVis();
   }
 
+  resize(containerWidth, containerHeight) {
+    const vis = this;
+    vis.config.containerWidth = containerWidth;
+    vis.config.containerHeight = containerHeight;
+    vis.width =
+      vis.config.containerWidth - vis.config.margin.left - vis.config.margin.right;
+    vis.height =
+      vis.config.containerHeight - vis.config.margin.top - vis.config.margin.bottom;
+
+    vis.svg
+      .attr("width", vis.config.containerWidth)
+      .attr("height", vis.config.containerHeight);
+    vis.chart.attr("transform", `translate(${vis.config.margin.left},${vis.config.margin.top})`);
+    if (vis.worldData) {
+      vis.projection.fitSize([vis.width, vis.height], vis.worldData);
+    }
+    vis.updateVis();
+  }
+
   updateLegend() {
     const vis = this;
     const legendWidth = 200;
@@ -157,11 +177,11 @@ export class Chloropleth {
     if (defs.empty()) {
       defs = vis.svg.append("defs");
     }
-    let gradient = defs.select("#chloropleth-gradient");
+    let gradient = defs.select(`#${vis.gradientId}`);
     if (gradient.empty()) {
       gradient = defs
         .append("linearGradient")
-        .attr("id", "chloropleth-gradient")
+        .attr("id", vis.gradientId)
         .attr("x1", "0%")
         .attr("y1", "0%")
         .attr("x2", "100%")
@@ -187,7 +207,7 @@ export class Chloropleth {
       .attr("y", legendY)
       .attr("width", legendWidth)
       .attr("height", legendHeight)
-      .style("fill", "url(#chloropleth-gradient)");
+      .style("fill", `url(#${vis.gradientId})`);
 
     legendGroup
       .append("text")

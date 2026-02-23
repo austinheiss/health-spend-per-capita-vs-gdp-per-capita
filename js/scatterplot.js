@@ -48,6 +48,7 @@ export class Scatterplot {
     // define axis labels
     vis.svg
       .append("text")
+      .attr("class", "x-axis-label")
       .attr("x", vis.config.containerWidth / 2)
       .attr("y", vis.config.containerHeight - 15)
       .attr("text-anchor", "middle")
@@ -55,6 +56,7 @@ export class Scatterplot {
 
     vis.svg
       .append("text")
+      .attr("class", "y-axis-label")
       .attr("transform", "rotate(-90)") // rotate so the y label goes vertically along the axis
       .attr("x", -vis.config.containerHeight / 2)
       .attr("y", 18)
@@ -123,5 +125,29 @@ export class Scatterplot {
       });
 
     circles.exit().remove(); // remove circles that no longer have data (for filters, date updates, etc...)
+  }
+
+  resize(containerWidth, containerHeight) {
+    const vis = this;
+    vis.config.containerWidth = containerWidth;
+    vis.config.containerHeight = containerHeight;
+    vis.width =
+      vis.config.containerWidth - vis.config.margin.left - vis.config.margin.right;
+    vis.height =
+      vis.config.containerHeight - vis.config.margin.top - vis.config.margin.bottom;
+
+    vis.svg
+      .attr("width", vis.config.containerWidth)
+      .attr("height", vis.config.containerHeight);
+    vis.xScale.range([0, vis.width]);
+    vis.yScale.range([vis.height, 0]);
+    vis.chart.attr("transform", `translate(${vis.config.margin.left},${vis.config.margin.top})`);
+    vis.xAxisGroup.attr("transform", `translate(0,${vis.height})`);
+    vis.svg.select(".x-axis-label")
+      .attr("x", vis.config.containerWidth / 2)
+      .attr("y", vis.config.containerHeight - 15);
+    vis.svg.select(".y-axis-label")
+      .attr("x", -vis.config.containerHeight / 2);
+    vis.updateVis();
   }
 }

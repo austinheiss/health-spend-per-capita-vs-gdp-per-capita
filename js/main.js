@@ -2,57 +2,86 @@ import { Scatterplot } from "./scatterplot.js";
 import { Histogram } from "./histogram.js";
 import { Chloropleth } from "./chloropleth.js";
 
-// Load data once, then hand it to the chart class.
+function observeAndResize(containerSelector, svgSelector, chart) {
+  const containerEl = document.querySelector(containerSelector);
+  const svgEl = document.querySelector(svgSelector);
+  let lastWidth = 0;
+  let lastHeight = 0;
+
+  const applyResize = () => {
+    const { width, height } = svgEl.getBoundingClientRect();
+    const nextWidth = Math.round(width);
+    const nextHeight = Math.round(height);
+
+    if (nextWidth <= 0 || nextHeight <= 0) return;
+    if (nextWidth === lastWidth && nextHeight === lastHeight) return;
+
+    lastWidth = nextWidth;
+    lastHeight = nextHeight;
+    chart.resize(nextWidth, nextHeight);
+  };
+
+  const ro = new ResizeObserver(() => {
+    applyResize();
+  });
+  ro.observe(containerEl);
+  applyResize();
+}
+
 d3.csv("./data/pre_processed/combined_2022.csv", d3.autoType).then((data) => {
-  new Scatterplot(
-    {
-      parentElement: "#chart",
-      containerWidth: 900,
-      containerHeight: 550,
-    },
+  const scatter = new Scatterplot(
+    { parentElement: "#chart", containerWidth: 800, containerHeight: 300 },
     data
   );
+  observeAndResize("#scatter-panel", "#chart", scatter);
 
-  const histogram = new Histogram(
+  const histHealth = new Histogram(
     {
-      parentElement: "#histogram",
-      containerWidth: 900,
-      containerHeight: 320,
+      parentElement: "#histogram-health",
+      containerWidth: 400,
+      containerHeight: 200,
       valueKey: "Healthcare expenditure (% of GDP)",
       binCount: 18,
     },
     data
   );
+  observeAndResize("#histogram-health-panel", "#histogram-health", histHealth);
 
-  const metricSelect = document.querySelector("#histogram-metric");
-  metricSelect.addEventListener("change", (event) => {
-    histogram.setValueKey(event.target.value);
-  });
-
-  const chloropleth = new Chloropleth(
+  const histLife = new Histogram(
     {
-      parentElement: "#chloropleth",
-      containerWidth: 900,
-      containerHeight: 550,
+      parentElement: "#histogram-life",
+      containerWidth: 400,
+      containerHeight: 200,
+      valueKey: "Life expectancy at birth (years)",
+      binCount: 18,
+    },
+    data
+  );
+  observeAndResize("#histogram-life-panel", "#histogram-life", histLife);
+
+  const chlorHealth = new Chloropleth(
+    {
+      parentElement: "#chloropleth-health",
+      containerWidth: 400,
+      containerHeight: 250,
       valueKey: "Healthcare expenditure (% of GDP)",
     },
     data
   );
-
-  const chloroplethMetricSelect = document.querySelector("#chloropleth-metric");
-  const chloroplethTitle = document.querySelector("#chloropleth-title");
-  const getChloroplethTitle = (valueKey) =>
-    valueKey === "Life expectancy at birth (years)"
-      ? "Life expectancy by country (years)"
-      : "Healthcare expenditure by country (% of GDP)";
-
-  chloroplethTitle.textContent = getChloroplethTitle(
-    chloroplethMetricSelect.value
+  observeAndResize(
+    "#chloropleth-health-panel",
+    "#chloropleth-health",
+    chlorHealth
   );
 
-  chloroplethMetricSelect.addEventListener("change", (event) => {
-    const valueKey = event.target.value;
-    chloropleth.setValueKey(valueKey);
-    chloroplethTitle.textContent = getChloroplethTitle(valueKey);
-  });
+  const chlorLife = new Chloropleth(
+    {
+      parentElement: "#chloropleth-life",
+      containerWidth: 400,
+      containerHeight: 250,
+      valueKey: "Life expectancy at birth (years)",
+    },
+    data
+  );
+  observeAndResize("#chloropleth-life-panel", "#chloropleth-life", chlorLife);
 });

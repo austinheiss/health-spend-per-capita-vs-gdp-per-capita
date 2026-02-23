@@ -50,6 +50,7 @@ export class Histogram {
     // define axis labels
     vis.xAxisLabel = vis.svg
       .append("text")
+      .attr("class", "x-axis-label")
       .attr("x", vis.config.containerWidth / 2)
       .attr("y", vis.config.containerHeight - 10)
       .attr("text-anchor", "middle")
@@ -57,6 +58,7 @@ export class Histogram {
 
     vis.svg
       .append("text")
+      .attr("class", "y-axis-label")
       .attr("transform", "rotate(-90)")
       .attr("x", -vis.config.containerHeight / 2)
       .attr("y", 16)
@@ -139,5 +141,31 @@ export class Histogram {
       });
 
     bars.exit().remove(); // remove bars with no corresponding bin (for updates/filters)
+  }
+
+  resize(containerWidth, containerHeight) {
+    const vis = this;
+    vis.config.containerWidth = containerWidth;
+    vis.config.containerHeight = containerHeight;
+    vis.width =
+      vis.config.containerWidth - vis.config.margin.left - vis.config.margin.right;
+    vis.height =
+      vis.config.containerHeight - vis.config.margin.top - vis.config.margin.bottom;
+
+    vis.svg
+      .attr("width", vis.config.containerWidth)
+      .attr("height", vis.config.containerHeight);
+    vis.xScale.range([0, vis.width]);
+    vis.yScale.range([vis.height, 0]);
+    vis.chart.attr(
+      "transform",
+      `translate(${vis.config.margin.left},${vis.config.margin.top})`
+    );
+    vis.xAxisGroup.attr("transform", `translate(0,${vis.height})`);
+    vis.svg.select(".x-axis-label")
+      .attr("x", vis.config.containerWidth / 2)
+      .attr("y", vis.config.containerHeight - 10);
+    vis.svg.select(".y-axis-label").attr("x", -vis.config.containerHeight / 2);
+    vis.updateVis();
   }
 }
