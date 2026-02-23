@@ -40,12 +40,18 @@ export class Chloropleth {
     vis.projection = d3.geoNaturalEarth1();
     vis.path = d3.geoPath().projection(vis.projection);
 
-    vis.countriesGroup = vis.chart.append("g"); // layer for country marks
+    vis.legendLeftMargin = 55; // space for vertical legend on left
+    vis.countriesGroup = vis.chart
+      .append("g")
+      .attr("transform", `translate(${vis.legendLeftMargin}, 0)`);
 
     // load world geometry, then run data processing + render
     d3.json("data/world.geojson").then((world) => {
       vis.worldData = world;
-      vis.projection.fitSize([vis.width, vis.height], world);
+      vis.projection.fitSize(
+        [vis.width - vis.legendLeftMargin, vis.height],
+        world
+      );
       vis.updateVis();
     });
   }
@@ -151,18 +157,22 @@ export class Chloropleth {
       .attr("width", vis.config.containerWidth)
       .attr("height", vis.config.containerHeight);
     vis.chart.attr("transform", `translate(${vis.config.margin.left},${vis.config.margin.top})`);
+    vis.countriesGroup.attr("transform", `translate(${vis.legendLeftMargin}, 0)`);
     if (vis.worldData) {
-      vis.projection.fitSize([vis.width, vis.height], vis.worldData);
+      vis.projection.fitSize(
+        [vis.width - vis.legendLeftMargin, vis.height],
+        vis.worldData
+      );
     }
     vis.updateVis();
   }
 
   updateLegend() {
     const vis = this;
-    const legendWidth = 200;
-    const legendHeight = 12;
-    const legendX = vis.width - legendWidth - 10;
-    const legendY = vis.height - 30;
+    const legendWidth = 12;
+    const legendHeight = 200;
+    const legendX = vis.legendLeftMargin - legendWidth - 4;
+    const legendY = Math.max(18, (vis.height - legendHeight) / 2);
 
     const domain = vis.colorScale.domain();
     const isHealthcare = vis.valueKey.includes("Healthcare");
@@ -173,7 +183,7 @@ export class Chloropleth {
     // Remove existing legend elements
     vis.chart.selectAll(".chloropleth-legend").remove();
 
-    // Create or update gradient
+    // Create or update gradient (vertical: bottom = min, top = max)
     let defs = vis.svg.select("defs");
     if (defs.empty()) {
       defs = vis.svg.append("defs");
@@ -184,8 +194,8 @@ export class Chloropleth {
         .append("linearGradient")
         .attr("id", vis.gradientId)
         .attr("x1", "0%")
-        .attr("y1", "0%")
-        .attr("x2", "100%")
+        .attr("y1", "100%")
+        .attr("x2", "0%")
         .attr("y2", "0%");
     }
     gradient
@@ -212,17 +222,20 @@ export class Chloropleth {
 
     legendGroup
       .append("text")
-      .attr("x", legendX)
-      .attr("y", legendY - 4)
+      .attr("x", legendX - 4)
+      .attr("y", legendY + legendHeight - 6)
+      .attr("text-anchor", "end")
+      .attr("dominant-baseline", "middle")
       .attr("font-size", 11)
       .attr("fill", "#666")
       .text(formatVal(domain[0]));
 
     legendGroup
       .append("text")
-      .attr("x", legendX + legendWidth)
-      .attr("y", legendY - 4)
+      .attr("x", legendX - 4)
+      .attr("y", legendY + 6)
       .attr("text-anchor", "end")
+      .attr("dominant-baseline", "middle")
       .attr("font-size", 11)
       .attr("fill", "#666")
       .text(`${formatVal(domain[1])} ${suffix}`);
