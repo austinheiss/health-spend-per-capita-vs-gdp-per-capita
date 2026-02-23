@@ -29,12 +29,30 @@ d3.csv("./data/pre_processed/combined_2022.csv", d3.autoType).then((data) => {
     histogram.setValueKey(event.target.value);
   });
 
-  new Chloropleth(
+  const chloropleth = new Chloropleth(
     {
       parentElement: "#chloropleth",
       containerWidth: 900,
       containerHeight: 550,
+      valueKey: "Healthcare expenditure (% of GDP)",
     },
     data
   );
+
+  const chloroplethMetricSelect = document.querySelector("#chloropleth-metric");
+  const chloroplethTitle = document.querySelector("#chloropleth-title");
+  const getChloroplethTitle = (valueKey) =>
+    valueKey === "Life expectancy at birth (years)"
+      ? "Life expectancy by country (years)"
+      : "Healthcare expenditure by country (% of GDP)";
+
+  chloroplethTitle.textContent = getChloroplethTitle(
+    chloroplethMetricSelect.value
+  );
+
+  chloroplethMetricSelect.addEventListener("change", (event) => {
+    const valueKey = event.target.value;
+    chloropleth.setValueKey(valueKey);
+    chloroplethTitle.textContent = getChloroplethTitle(valueKey);
+  });
 });

@@ -9,7 +9,7 @@ export class Chloropleth {
     };
 
     this.data = data;
-    this.valueKey = "Healthcare expenditure (% of GDP)";
+    this.valueKey = config.valueKey || "Healthcare expenditure (% of GDP)";
 
     this.initVis();
   }
@@ -102,7 +102,11 @@ export class Chloropleth {
         const name = d.properties?.name || d.id;
         const html =
           value != null
-            ? `<strong>${row.Entity}</strong><br>Healthcare expenditure: ${value.toFixed(2)}% of GDP`
+            ? `<strong>${row.Entity}</strong><br>${
+                vis.valueKey.includes("Life expectancy")
+                  ? `Life expectancy: ${value.toFixed(1)} years`
+                  : `Healthcare expenditure: ${value.toFixed(2)}% of GDP`
+              }`
             : `<strong>${name}</strong><br>No data`;
 
         vis.tooltip.style("display", "block").html(html);
@@ -123,60 +127,83 @@ export class Chloropleth {
 
     countries.exit().remove();
 
-    // Add legend
-    if (!vis.legendAdded) {
-      const legendWidth = 200;
-      const legendHeight = 12;
-      const legendX = vis.width - legendWidth - 10;
-      const legendY = vis.height - 30;
+    // Add or update legend
+    vis.updateLegend();
+  }
 
-      const defs = vis.svg.append("defs");
-      const linearGradient = defs
+  setValueKey(valueKey) {
+    this.valueKey = valueKey;
+    this.updateVis();
+  }
+
+  updateLegend() {
+    const vis = this;
+    const legendWidth = 200;
+    const legendHeight = 12;
+    const legendX = vis.width - legendWidth - 10;
+    const legendY = vis.height - 30;
+
+    const domain = vis.colorScale.domain();
+    const isHealthcare = vis.valueKey.includes("Healthcare");
+    const formatVal = (v) =>
+      isHealthcare ? `${v.toFixed(1)}%` : v.toFixed(1);
+    const suffix = isHealthcare ? "of GDP" : "years";
+
+    // Remove existing legend elements
+    vis.chart.selectAll(".chloropleth-legend").remove();
+
+    // Create or update gradient
+    let defs = vis.svg.select("defs");
+    if (defs.empty()) {
+      defs = vis.svg.append("defs");
+    }
+    let gradient = defs.select("#chloropleth-gradient");
+    if (gradient.empty()) {
+      gradient = defs
         .append("linearGradient")
         .attr("id", "chloropleth-gradient")
         .attr("x1", "0%")
         .attr("y1", "0%")
         .attr("x2", "100%")
         .attr("y2", "0%");
-
-      const domain = vis.colorScale.domain();
-      linearGradient
-        .selectAll("stop")
-        .data([
-          { offset: "0%", color: vis.colorScale(domain[0]) },
-          { offset: "100%", color: vis.colorScale(domain[1]) },
-        ])
-        .enter()
-        .append("stop")
-        .attr("offset", (d) => d.offset)
-        .attr("stop-color", (d) => d.color);
-
-      vis.chart
-        .append("rect")
-        .attr("x", legendX)
-        .attr("y", legendY)
-        .attr("width", legendWidth)
-        .attr("height", legendHeight)
-        .style("fill", "url(#chloropleth-gradient)");
-
-      vis.chart
-        .append("text")
-        .attr("x", legendX)
-        .attr("y", legendY - 4)
-        .attr("font-size", 11)
-        .attr("fill", "#666")
-        .text(`${domain[0].toFixed(1)}%`); // min value
-
-      vis.chart
-        .append("text")
-        .attr("x", legendX + legendWidth)
-        .attr("y", legendY - 4)
-        .attr("text-anchor", "end")
-        .attr("font-size", 11)
-        .attr("fill", "#666")
-        .text(`${domain[1].toFixed(1)}% of GDP`); // max value
-
-      vis.legendAdded = true;
     }
+    gradient
+      .selectAll("stop")
+      .data([
+        { offset: "0%", color: vis.colorScale(domain[0]) },
+        { offset: "100%", color: vis.colorScale(domain[1]) },
+      ])
+      .join("stop")
+      .attr("offset", (d) => d.offset)
+      .attr("stop-color", (d) => d.color);
+
+    const legendGroup = vis.chart
+      .append("g")
+      .attr("class", "chloropleth-legend");
+
+    legendGroup
+      .append("rect")
+      .attr("x", legendX)
+      .attr("y", legendY)
+      .attr("width", legendWidth)
+      .attr("height", legendHeight)
+      .style("fill", "url(#chloropleth-gradient)");
+
+    legendGroup
+      .append("text")
+      .attr("x", legendX)
+      .attr("y", legendY - 4)
+      .attr("font-size", 11)
+      .attr("fill", "#666")
+      .text(formatVal(domain[0]));
+
+    legendGroup
+      .append("text")
+      .attr("x", legendX + legendWidth)
+      .attr("y", legendY - 4)
+      .attr("text-anchor", "end")
+      .attr("font-size", 11)
+      .attr("fill", "#666")
+      .text(`${formatVal(domain[1])} ${suffix}`);
   }
 }
