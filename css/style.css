@@ -36,9 +36,9 @@ main {
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr 1.5fr;
-  gap: 8px 24px;
-  padding: 8px;
+  grid-template-rows: 1fr auto 1fr 1.5fr;
+  gap: 4px 12px;
+  padding: 4px;
   align-items: stretch;
   max-width: 1400px;
   max-height: 900px;
@@ -54,6 +54,13 @@ main {
 
 .chart-container.scatter {
   grid-column: 1 / -1;
+}
+
+.column-title {
+  margin: 0;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.2;
 }
 
 .chart-container .panel-title {

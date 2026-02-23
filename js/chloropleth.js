@@ -52,6 +52,7 @@ export class Chloropleth {
 
   updateVis() {
     const vis = this;
+    if (!vis.worldData) return;
 
     // keep only rows with country code and selected metric
     vis.cleanData = vis.data.filter(
