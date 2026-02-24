@@ -159,11 +159,6 @@ export class Chloropleth {
     vis.updateLegend();
   }
 
-  setValueKey(valueKey) {
-    this.valueKey = valueKey;
-    this.updateVis();
-  }
-
   setYearRange(startYear, endYear) {
     this.yearRange = [startYear, endYear];
     this.updateVis();
