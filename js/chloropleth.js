@@ -10,6 +10,7 @@ export class Chloropleth {
 
     this.data = data;
     this.valueKey = config.valueKey || "Healthcare expenditure (% of GDP)";
+    this.yearRange = null;
     this.gradientId = `chloropleth-gradient-${this.config.parentElement.replace("#", "")}`;
 
     this.initVis();
@@ -59,17 +60,36 @@ export class Chloropleth {
   updateVis() {
     const vis = this;
     if (!vis.worldData) return;
+    const [startYear, endYear] = vis.yearRange || [-Infinity, Infinity];
 
     // keep only rows with country code and selected metric
     vis.cleanData = vis.data.filter(
-      (d) => d.Code != null && d[vis.valueKey] != null
+      (d) =>
+        d.Code != null &&
+        d[vis.valueKey] != null &&
+        d.Year >= startYear &&
+        d.Year <= endYear
     );
+
+    const latestByCode = new Map();
+    vis.cleanData.forEach((d) => {
+      const previous = latestByCode.get(d.Code);
+      if (!previous || d.Year > previous.Year) {
+        latestByCode.set(d.Code, d);
+      }
+    });
+    vis.cleanData = Array.from(latestByCode.values());
 
     // ISO code -> row lookup
     vis.rowsByCode = Object.fromEntries(vis.cleanData.map((d) => [d.Code, d]));
 
     // map metric values to color scale
     const values = vis.cleanData.map((d) => d[vis.valueKey]);
+    if (!values.length) {
+      vis.colorScale = d3.scaleSequential(d3.interpolateBlues).domain([0, 1]);
+      vis.renderVis();
+      return;
+    }
     vis.colorScale = d3
       .scaleSequential(d3.interpolateBlues)
       .domain(d3.extent(values));
@@ -141,6 +161,11 @@ export class Chloropleth {
 
   setValueKey(valueKey) {
     this.valueKey = valueKey;
+    this.updateVis();
+  }
+
+  setYearRange(startYear, endYear) {
+    this.yearRange = [startYear, endYear];
     this.updateVis();
   }
 

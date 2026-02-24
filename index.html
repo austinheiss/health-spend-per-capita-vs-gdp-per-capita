@@ -17,7 +17,7 @@
     and
     <a href="https://ourworldindata.org/grapher/life-expectancy-hmd-unwpp?country=FRA~ZAF~NGA~CHN">life expectancy</a>
   </p>
-  <p>Year displayed: 2022</p>
+  <p id="year-display">Year displayed: 2022</p>
 </header>
 <main>
   <div id="scatter-panel" class="chart-container scatter">
@@ -36,6 +36,10 @@
   </div>
   <div id="chloropleth-life-panel" class="chart-container">
     <svg id="chloropleth-life"></svg>
+  </div>
+  <div id="year-brush-panel" class="chart-container year-brush">
+    <h2 class="panel-title">Year brush</h2>
+    <svg id="year-brush"></svg>
   </div>
 </main>
 <div id="tooltip"></div>

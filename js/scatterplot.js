@@ -11,6 +11,7 @@ export class Scatterplot {
     this.data = data;
     this.xKey = "Healthcare expenditure (% of GDP)";
     this.yKey = "Life expectancy at birth (years)";
+    this.yearRange = null;
 
     this.initVis();
   }
@@ -72,10 +73,25 @@ export class Scatterplot {
   updateVis() {
     const vis = this;
 
+    const [startYear, endYear] = vis.yearRange || [-Infinity, Infinity];
+
     // keep only rows with both required numeric values
     vis.cleanData = vis.data.filter(
-      (d) => d[vis.xKey] != null && d[vis.yKey] != null
+      (d) =>
+        d[vis.xKey] != null &&
+        d[vis.yKey] != null &&
+        d.Year >= startYear &&
+        d.Year <= endYear
     );
+
+    if (!vis.cleanData.length) {
+      vis.xScale.domain([0, 1]);
+      vis.yScale.domain([0, 1]);
+      vis.xAxis = d3.axisBottom(vis.xScale);
+      vis.yAxis = d3.axisLeft(vis.yScale);
+      vis.renderVis();
+      return;
+    }
 
     // map data domains to pixel ranges
     // extent finds [min, max], rounds bounds to nicer tick values
@@ -87,6 +103,11 @@ export class Scatterplot {
     vis.yAxis = d3.axisLeft(vis.yScale);
 
     vis.renderVis();
+  }
+
+  setYearRange(startYear, endYear) {
+    this.yearRange = [startYear, endYear];
+    this.updateVis();
   }
 
   renderVis() {

@@ -11,6 +11,7 @@ export class Histogram {
     };
 
     this.data = data;
+    this.yearRange = null;
     this.initVis();
   }
 
@@ -79,11 +80,21 @@ export class Histogram {
 
   updateVis() {
     const vis = this;
+    const [startYear, endYear] = vis.yearRange || [-Infinity, Infinity];
 
     // keep only valid numeric values for the selected measure
     const values = vis.data
+      .filter((d) => d.Year >= startYear && d.Year <= endYear)
       .map((d) => d[vis.config.valueKey])
       .filter((v) => v != null && !Number.isNaN(v));
+
+    if (!values.length) {
+      vis.bins = [];
+      vis.xScale.domain([0, 1]);
+      vis.yScale.domain([0, 1]);
+      vis.renderVis();
+      return;
+    }
 
     // map data domain to pixel range on x-axis
     vis.xScale.domain(d3.extent(values)).nice();
@@ -100,6 +111,11 @@ export class Histogram {
       .nice();
 
     vis.renderVis();
+  }
+
+  setYearRange(startYear, endYear) {
+    this.yearRange = [startYear, endYear];
+    this.updateVis();
   }
 
   renderVis() {
