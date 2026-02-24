@@ -85,6 +85,22 @@ main {
   min-height: 300px;
 }
 
+.scatter-point.is-dimmed {
+  opacity: 0.2;
+}
+
+.scatter-point.is-selected {
+  fill: #1d4ed8;
+  stroke: #0f172a;
+  stroke-width: 1px;
+}
+
+.scatter-brush-g .selection {
+  fill: #93c5fd;
+  fill-opacity: 0.2;
+  stroke: #2563eb;
+}
+
 .year-brush-axis path,
 .year-brush-axis line {
   stroke: #9ca3af;
