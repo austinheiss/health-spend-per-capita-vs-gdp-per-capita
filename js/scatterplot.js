@@ -6,6 +6,7 @@ export class Scatterplot {
       containerHeight: config.containerHeight || 550,
       margin: config.margin || { top: 20, right: 20, bottom: 60, left: 70 },
       tooltipPadding: config.tooltipPadding || 12,
+      onSelectionChange: config.onSelectionChange || null,
     };
 
     this.data = data;
@@ -15,6 +16,7 @@ export class Scatterplot {
     this.selectionMode = "none";
     this.selectedPointKeys = new Set();
     this.selectedCountryKeys = new Set();
+    this.isProgrammaticBrushMove = false;
 
     this.initVis();
   }
@@ -67,8 +69,9 @@ export class Scatterplot {
       .attr("text-anchor", "middle")
       .text(vis.yKey);
 
-    vis.pointsGroup = vis.chart.append("g"); // layer for point marks
+    // Keep brush behind points so point hover tooltips are not blocked.
     vis.brushGroup = vis.chart.append("g").attr("class", "scatter-brush-g");
+    vis.pointsGroup = vis.chart.append("g"); // layer for point marks
     vis.tooltip = d3.select("#tooltip");
     vis.initBrush();
 
@@ -121,6 +124,15 @@ export class Scatterplot {
     this.updateVis();
   }
 
+  emitSelectionChange() {
+    if (typeof this.config.onSelectionChange !== "function") return;
+    if (this.selectionMode === "none") {
+      this.config.onSelectionChange([]);
+      return;
+    }
+    this.config.onSelectionChange(Array.from(this.selectedCountryKeys));
+  }
+
   pointKey(d) {
     return `${d.Code || d.Entity}-${d.Year}`;
   }
@@ -138,11 +150,13 @@ export class Scatterplot {
         [vis.width, vis.height],
       ])
       .on("brush end", (event) => {
+        if (vis.isProgrammaticBrushMove) return;
         if (!event.selection) {
           vis.selectionMode = "none";
           vis.selectedCountryKeys = new Set();
           vis.selectedPointKeys = new Set();
           vis.updateBrushedStyles();
+          vis.emitSelectionChange();
           return;
         }
 
@@ -157,7 +171,27 @@ export class Scatterplot {
         vis.selectedCountryKeys = new Set(selectedRows.map((d) => vis.countryKey(d)));
         vis.selectionMode = "points";
         vis.updateBrushedStyles();
+        vis.emitSelectionChange();
       });
+  }
+
+  setHighlightedCountries(countryKeys) {
+    const keys = new Set(countryKeys || []);
+    if (!keys.size) {
+      this.selectionMode = "none";
+      this.selectedCountryKeys = new Set();
+      this.selectedPointKeys = new Set();
+    } else {
+      this.selectionMode = "countries";
+      this.selectedCountryKeys = keys;
+      this.selectedPointKeys = new Set();
+    }
+    if (this.brushGroup && this.brush) {
+      this.isProgrammaticBrushMove = true;
+      this.brushGroup.call(this.brush.move, null);
+      this.isProgrammaticBrushMove = false;
+    }
+    this.updateBrushedStyles();
   }
 
   updateBrushedStyles() {

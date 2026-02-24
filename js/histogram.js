@@ -8,11 +8,14 @@ export class Histogram {
       valueKey: config.valueKey,
       binCount: config.binCount || 20,
       tooltipPadding: config.tooltipPadding || 12,
+      onSelectionChange: config.onSelectionChange || null,
     };
 
     this.data = data;
     this.yearRange = null;
     this.selectedRange = null;
+    this.highlightedCountryKeys = new Set();
+    this.isProgrammaticBrushMove = false;
     this.initVis();
   }
 
@@ -67,8 +70,9 @@ export class Histogram {
       .attr("text-anchor", "middle")
       .text("Count of countries");
 
-    vis.barsGroup = vis.chart.append("g"); // layer for bar marks
+    // Keep brush behind bars so bar hover tooltips are not blocked.
     vis.brushGroup = vis.chart.append("g").attr("class", "histogram-brush-g");
+    vis.barsGroup = vis.chart.append("g"); // layer for bar marks
     vis.tooltip = d3.select("#tooltip");
     vis.initBrush();
 
@@ -80,10 +84,12 @@ export class Histogram {
     const [startYear, endYear] = vis.yearRange || [-Infinity, Infinity];
 
     // keep only valid numeric values for the selected measure
-    const values = vis.data
+    vis.cleanRows = vis.data
       .filter((d) => d.Year >= startYear && d.Year <= endYear)
-      .map((d) => d[vis.config.valueKey])
-      .filter((v) => v != null && !Number.isNaN(v));
+      .map((d) => ({ row: d, value: d[vis.config.valueKey] }))
+      .filter((d) => d.value != null && !Number.isNaN(d.value));
+
+    const values = vis.cleanRows.map((d) => d.value);
 
     if (!values.length) {
       vis.bins = [];
@@ -101,6 +107,15 @@ export class Histogram {
       .bin()
       .domain(vis.xScale.domain())
       .thresholds(vis.config.binCount)(values);
+    vis.binCountryKeySets = vis.bins.map((bin, i) => {
+      const isLastBin = i === vis.bins.length - 1;
+      const keys = new Set();
+      vis.cleanRows.forEach(({ row, value }) => {
+        const inBin = value >= bin.x0 && (isLastBin ? value <= bin.x1 : value < bin.x1);
+        if (inBin) keys.add(row.Code || row.Entity);
+      });
+      return keys;
+    });
 
     // y domain is counts per bin
     vis.yScale
@@ -115,6 +130,21 @@ export class Histogram {
     this.updateVis();
   }
 
+  emitSelectionChange() {
+    if (typeof this.config.onSelectionChange !== "function") return;
+    if (!Array.isArray(this.selectedRange)) {
+      this.config.onSelectionChange([]);
+      return;
+    }
+    const [rangeMin, rangeMax] = this.selectedRange;
+    const selectedKeys = new Set(
+      this.cleanRows
+        .filter(({ value }) => value >= rangeMin && value <= rangeMax)
+        .map(({ row }) => row.Code || row.Entity)
+    );
+    this.config.onSelectionChange(Array.from(selectedKeys));
+  }
+
   initBrush() {
     const vis = this;
     vis.brush = d3
@@ -124,15 +154,18 @@ export class Histogram {
         [vis.width, vis.height],
       ])
       .on("brush end", (event) => {
+        if (vis.isProgrammaticBrushMove) return;
         if (!event.selection) {
           vis.selectedRange = null;
           vis.updateBrushedStyles();
+          vis.emitSelectionChange();
           return;
         }
 
         const nextRange = vis.rangeFromSelection(event.selection);
         vis.selectedRange = nextRange;
         vis.updateBrushedStyles();
+        vis.emitSelectionChange();
 
         if (event.type === "end" && event.sourceEvent) {
           vis.brushGroup.call(vis.brush.move, vis.selectionFromRange(vis.selectedRange));
@@ -160,21 +193,47 @@ export class Histogram {
 
   updateBrushedStyles() {
     const vis = this;
-    const hasSelection = Array.isArray(vis.selectedRange);
-    const [rangeMin, rangeMax] = hasSelection ? vis.selectedRange : [null, null];
+    const hasBrushSelection = Array.isArray(vis.selectedRange);
+    const hasCountrySelection = vis.highlightedCountryKeys.size > 0;
+    const [rangeMin, rangeMax] = hasBrushSelection ? vis.selectedRange : [null, null];
 
     vis.barsGroup
       .selectAll("rect")
-      .attr("fill", (d) => {
-        if (!hasSelection) return "#60a5fa";
-        const overlapsRange = d.x1 >= rangeMin && d.x0 <= rangeMax;
-        return overlapsRange ? "#2563eb" : "#93c5fd";
+      .attr("fill", (_, i) => {
+        if (!hasBrushSelection && !hasCountrySelection) return "#60a5fa";
+        if (hasBrushSelection) {
+          const bin = vis.bins[i];
+          const overlapsRange = bin.x1 >= rangeMin && bin.x0 <= rangeMax;
+          return overlapsRange ? "#2563eb" : "#93c5fd";
+        }
+        const hasHighlightedCountryInBin = Array.from(vis.binCountryKeySets[i] || []).some(
+          (key) => vis.highlightedCountryKeys.has(key)
+        );
+        return hasHighlightedCountryInBin ? "#2563eb" : "#93c5fd";
       })
-      .attr("opacity", (d) => {
-        if (!hasSelection) return 1;
-        const overlapsRange = d.x1 >= rangeMin && d.x0 <= rangeMax;
-        return overlapsRange ? 1 : 0.35;
+      .attr("opacity", (_, i) => {
+        if (!hasBrushSelection && !hasCountrySelection) return 1;
+        if (hasBrushSelection) {
+          const bin = vis.bins[i];
+          const overlapsRange = bin.x1 >= rangeMin && bin.x0 <= rangeMax;
+          return overlapsRange ? 1 : 0.35;
+        }
+        const hasHighlightedCountryInBin = Array.from(vis.binCountryKeySets[i] || []).some(
+          (key) => vis.highlightedCountryKeys.has(key)
+        );
+        return hasHighlightedCountryInBin ? 1 : 0.35;
       });
+  }
+
+  setHighlightedCountries(countryKeys) {
+    this.highlightedCountryKeys = new Set(countryKeys || []);
+    this.selectedRange = null;
+    if (this.brushGroup && this.brush) {
+      this.isProgrammaticBrushMove = true;
+      this.brushGroup.call(this.brush.move, null);
+      this.isProgrammaticBrushMove = false;
+    }
+    this.updateBrushedStyles();
   }
 
   renderVis() {
@@ -190,7 +249,6 @@ export class Histogram {
       .enter()
       .append("rect")
       .merge(bars) // merge enter and update selections so both are styled the same way
-      .attr("class", "histogram-bar")
       .attr("x", (d) => vis.xScale(d.x0) + 1)
       .attr("y", (d) => vis.yScale(d.length))
       .attr("width", (d) =>

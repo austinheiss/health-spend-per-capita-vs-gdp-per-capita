@@ -42,7 +42,6 @@ class YearBrush {
       containerHeight: config.containerHeight || 600,
       margin: config.margin || { top: 16, right: 16, bottom: 16, left: 18 },
     };
-    this.years = years;
     this.onRangeChange = onRangeChange;
     this.selectedRange = [years[years.length - 1], years[years.length - 1]];
     this.minYear = years[0];
@@ -200,8 +199,16 @@ Promise.all([
   const years = Array.from(new Set(data.map((d) => d.Year))).sort((a, b) => a - b);
   if (!years.length) return;
 
+  let highlightedCountryKeys = new Set();
+
   const scatter = new Scatterplot(
-    { parentElement: "#chart", containerWidth: 800, containerHeight: 300 },
+    {
+      parentElement: "#chart",
+      containerWidth: 800,
+      containerHeight: 300,
+      onSelectionChange: (countryKeys) =>
+        applyCountryHighlights(countryKeys, "scatter"),
+    },
     data
   );
   observeAndResize("#scatter-panel", "#chart", scatter);
@@ -213,6 +220,8 @@ Promise.all([
       containerHeight: 200,
       valueKey: HEALTH_DISPLAY_KEY,
       binCount: 18,
+      onSelectionChange: (countryKeys) =>
+        applyCountryHighlights(countryKeys, "hist-health"),
     },
     data
   );
@@ -225,6 +234,8 @@ Promise.all([
       containerHeight: 200,
       valueKey: LIFE_DISPLAY_KEY,
       binCount: 18,
+      onSelectionChange: (countryKeys) =>
+        applyCountryHighlights(countryKeys, "hist-life"),
     },
     data
   );
@@ -256,12 +267,24 @@ Promise.all([
   );
   observeAndResize("#chloropleth-life-panel", "#chloropleth-life", chlorLife);
 
+  function applyCountryHighlights(countryKeys = [], source = null) {
+    highlightedCountryKeys = new Set(countryKeys);
+    const keys = Array.from(highlightedCountryKeys);
+
+    if (source !== "scatter") scatter.setHighlightedCountries(keys);
+    if (source !== "hist-health") histHealth.setHighlightedCountries(keys);
+    if (source !== "hist-life") histLife.setHighlightedCountries(keys);
+    chlorHealth.setHighlightedCountries(keys);
+    chlorLife.setHighlightedCountries(keys);
+  }
+
   const applyYearRange = ([startYear, endYear]) => {
     scatter.setYearRange(startYear, endYear);
     histHealth.setYearRange(startYear, endYear);
     histLife.setYearRange(startYear, endYear);
     chlorHealth.setYearRange(startYear, endYear);
     chlorLife.setYearRange(startYear, endYear);
+    applyCountryHighlights(Array.from(highlightedCountryKeys));
 
     document.querySelector("#year-display").textContent =
       startYear === endYear

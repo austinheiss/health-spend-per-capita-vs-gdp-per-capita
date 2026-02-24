@@ -11,6 +11,7 @@ export class Chloropleth {
     this.data = data;
     this.valueKey = config.valueKey || "Healthcare expenditure (% of GDP)";
     this.yearRange = null;
+    this.highlightedCountryKeys = new Set();
     this.gradientId = `chloropleth-gradient-${this.config.parentElement.replace("#", "")}`;
 
     this.initVis();
@@ -145,15 +146,12 @@ export class Chloropleth {
           .style("top", `${event.pageY + vis.config.tooltipPadding}px`);
       })
       .on("mouseleave", () => {
-        vis.countriesGroup
-          .selectAll(".country")
-          .style("opacity", 0.9)
-          .style("stroke", "#fff")
-          .style("stroke-width", 0.5);
+        vis.updateHighlightStyles();
         vis.tooltip.style("display", "none");
       });
 
     countries.exit().remove();
+    vis.updateHighlightStyles();
 
     // Add or update legend
     vis.updateLegend();
@@ -162,6 +160,11 @@ export class Chloropleth {
   setYearRange(startYear, endYear) {
     this.yearRange = [startYear, endYear];
     this.updateVis();
+  }
+
+  setHighlightedCountries(countryKeys) {
+    this.highlightedCountryKeys = new Set(countryKeys || []);
+    this.updateHighlightStyles();
   }
 
   resize(containerWidth, containerHeight) {
@@ -259,5 +262,27 @@ export class Chloropleth {
       .attr("font-size", 11)
       .attr("fill", "#666")
       .text(`${formatVal(domain[1])} ${suffix}`);
+  }
+
+  updateHighlightStyles() {
+    const vis = this;
+    const hasSelection = vis.highlightedCountryKeys.size > 0;
+    vis.countriesGroup
+      .selectAll(".country")
+      .style("opacity", (d) => {
+        if (!hasSelection) return 0.9;
+        const code = vis.rowsByCode[d.id]?.Code;
+        return code && vis.highlightedCountryKeys.has(code) ? 0.95 : 0.18;
+      })
+      .style("stroke", (d) => {
+        if (!hasSelection) return "#fff";
+        const code = vis.rowsByCode[d.id]?.Code;
+        return code && vis.highlightedCountryKeys.has(code) ? "#111827" : "#fff";
+      })
+      .style("stroke-width", (d) => {
+        if (!hasSelection) return 0.5;
+        const code = vis.rowsByCode[d.id]?.Code;
+        return code && vis.highlightedCountryKeys.has(code) ? 1.2 : 0.5;
+      });
   }
 }
