@@ -49,7 +49,7 @@ export class Histogram {
     vis.yAxisGroup = vis.chart.append("g");
 
     // define axis labels
-    vis.xAxisLabel = vis.svg
+    vis.svg
       .append("text")
       .attr("class", "x-axis-label")
       .attr("x", vis.config.containerWidth / 2)
@@ -70,12 +70,6 @@ export class Histogram {
     vis.tooltip = d3.select("#tooltip");
 
     vis.updateVis(); // trigger initial data processing and rendering
-  }
-
-  setValueKey(valueKey) {
-    this.config.valueKey = valueKey;
-    this.xAxisLabel.text(valueKey);
-    this.updateVis();
   }
 
   updateVis() {
