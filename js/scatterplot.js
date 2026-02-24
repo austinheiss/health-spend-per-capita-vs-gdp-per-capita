@@ -12,9 +12,6 @@ export class Scatterplot {
     this.xKey = "Healthcare expenditure (% of GDP)";
     this.yKey = "Life expectancy at birth (years)";
     this.yearRange = null;
-    this.selectionMode = "none";
-    this.selectedPointKeys = new Set();
-    this.selectedCountryKeys = new Set();
 
     this.initVis();
   }
@@ -68,9 +65,7 @@ export class Scatterplot {
       .text(vis.yKey);
 
     vis.pointsGroup = vis.chart.append("g"); // layer for point marks
-    vis.brushGroup = vis.chart.append("g").attr("class", "scatter-brush-g");
     vis.tooltip = d3.select("#tooltip");
-    vis.initBrush();
 
     vis.updateVis(); // trigger initial data processing and rendering
   }
@@ -112,76 +107,7 @@ export class Scatterplot {
 
   setYearRange(startYear, endYear) {
     this.yearRange = [startYear, endYear];
-    if (this.selectionMode === "points") {
-      // Keep selected countries persistent across year changes,
-      // but drop the old geometric point selection.
-      this.selectionMode = "countries";
-      this.selectedPointKeys = new Set();
-    }
     this.updateVis();
-  }
-
-  pointKey(d) {
-    return `${d.Code || d.Entity}-${d.Year}`;
-  }
-
-  countryKey(d) {
-    return d.Code || d.Entity;
-  }
-
-  initBrush() {
-    const vis = this;
-    vis.brush = d3
-      .brush()
-      .extent([
-        [0, 0],
-        [vis.width, vis.height],
-      ])
-      .on("brush end", (event) => {
-        if (!event.selection) {
-          vis.selectionMode = "none";
-          vis.selectedCountryKeys = new Set();
-          vis.selectedPointKeys = new Set();
-          vis.updateBrushedStyles();
-          return;
-        }
-
-        const [[x0, y0], [x1, y1]] = event.selection;
-        const selectedRows = vis.cleanData.filter((d) => {
-          const x = vis.xScale(d[vis.xKey]);
-          const y = vis.yScale(d[vis.yKey]);
-          return x >= x0 && x <= x1 && y >= y0 && y <= y1;
-        });
-
-        vis.selectedPointKeys = new Set(selectedRows.map((d) => vis.pointKey(d)));
-        vis.selectedCountryKeys = new Set(selectedRows.map((d) => vis.countryKey(d)));
-        vis.selectionMode = "points";
-        vis.updateBrushedStyles();
-      });
-  }
-
-  updateBrushedStyles() {
-    const vis = this;
-    const hasSelection = vis.selectionMode !== "none";
-
-    vis.pointsGroup
-      .selectAll("circle")
-      .classed(
-        "is-selected",
-        (d) =>
-          vis.selectionMode === "points"
-            ? vis.selectedPointKeys.has(vis.pointKey(d))
-            : vis.selectionMode === "countries" &&
-              vis.selectedCountryKeys.has(vis.countryKey(d))
-      )
-      .classed(
-        "is-dimmed",
-        (d) =>
-          hasSelection &&
-          (vis.selectionMode === "points"
-            ? !vis.selectedPointKeys.has(vis.pointKey(d))
-            : !vis.selectedCountryKeys.has(vis.countryKey(d)))
-      );
   }
 
   renderVis() {
@@ -191,15 +117,12 @@ export class Scatterplot {
     vis.xAxisGroup.call(vis.xAxis);
     vis.yAxisGroup.call(vis.yAxis);
 
-    const circles = vis.pointsGroup
-      .selectAll("circle")
-      .data(vis.cleanData, (d) => vis.pointKey(d)); // data join for circles
+    const circles = vis.pointsGroup.selectAll("circle").data(vis.cleanData); // data join for circles
 
     circles
       .enter()
       .append("circle")
       .merge(circles) // merge enter and update selections so both are styled the same way
-      .attr("class", "scatter-point")
       .attr("cx", (d) => vis.xScale(d[vis.xKey]))
       .attr("cy", (d) => vis.yScale(d[vis.yKey]))
       .attr("r", 3)
@@ -223,8 +146,6 @@ export class Scatterplot {
       });
 
     circles.exit().remove(); // remove circles that no longer have data (for filters, date updates, etc...)
-    vis.brushGroup.call(vis.brush);
-    vis.updateBrushedStyles();
   }
 
   resize(containerWidth, containerHeight) {
@@ -248,7 +169,6 @@ export class Scatterplot {
       .attr("y", vis.config.containerHeight - 15);
     vis.svg.select(".y-axis-label")
       .attr("x", -vis.config.containerHeight / 2);
-    vis.initBrush();
     vis.updateVis();
   }
 }
