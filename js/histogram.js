@@ -12,6 +12,7 @@ export class Histogram {
 
     this.data = data;
     this.yearRange = null;
+    this.selectedRange = null;
     this.initVis();
   }
 
@@ -67,7 +68,9 @@ export class Histogram {
       .text("Count of countries");
 
     vis.barsGroup = vis.chart.append("g"); // layer for bar marks
+    vis.brushGroup = vis.chart.append("g").attr("class", "histogram-brush-g");
     vis.tooltip = d3.select("#tooltip");
+    vis.initBrush();
 
     vis.updateVis(); // trigger initial data processing and rendering
   }
@@ -112,6 +115,68 @@ export class Histogram {
     this.updateVis();
   }
 
+  initBrush() {
+    const vis = this;
+    vis.brush = d3
+      .brushX()
+      .extent([
+        [0, 0],
+        [vis.width, vis.height],
+      ])
+      .on("brush end", (event) => {
+        if (!event.selection) {
+          vis.selectedRange = null;
+          vis.updateBrushedStyles();
+          return;
+        }
+
+        const nextRange = vis.rangeFromSelection(event.selection);
+        vis.selectedRange = nextRange;
+        vis.updateBrushedStyles();
+
+        if (event.type === "end" && event.sourceEvent) {
+          vis.brushGroup.call(vis.brush.move, vis.selectionFromRange(vis.selectedRange));
+        }
+      });
+  }
+
+  rangeFromSelection([x0, x1]) {
+    const [domainMin, domainMax] = this.xScale.domain();
+    const left = Math.max(0, Math.min(x0, x1));
+    const right = Math.min(this.width, Math.max(x0, x1));
+    const rangeMin = this.xScale.invert(left);
+    const rangeMax = this.xScale.invert(right);
+    return [
+      Math.max(domainMin, Math.min(rangeMin, rangeMax)),
+      Math.min(domainMax, Math.max(rangeMin, rangeMax)),
+    ];
+  }
+
+  selectionFromRange([rangeMin, rangeMax]) {
+    const x0 = this.xScale(rangeMin);
+    const x1 = this.xScale(rangeMax);
+    return [Math.max(0, Math.min(x0, x1)), Math.min(this.width, Math.max(x0, x1))];
+  }
+
+  updateBrushedStyles() {
+    const vis = this;
+    const hasSelection = Array.isArray(vis.selectedRange);
+    const [rangeMin, rangeMax] = hasSelection ? vis.selectedRange : [null, null];
+
+    vis.barsGroup
+      .selectAll("rect")
+      .attr("fill", (d) => {
+        if (!hasSelection) return "#60a5fa";
+        const overlapsRange = d.x1 >= rangeMin && d.x0 <= rangeMax;
+        return overlapsRange ? "#2563eb" : "#93c5fd";
+      })
+      .attr("opacity", (d) => {
+        if (!hasSelection) return 1;
+        const overlapsRange = d.x1 >= rangeMin && d.x0 <= rangeMax;
+        return overlapsRange ? 1 : 0.35;
+      });
+  }
+
   renderVis() {
     const vis = this;
 
@@ -125,13 +190,13 @@ export class Histogram {
       .enter()
       .append("rect")
       .merge(bars) // merge enter and update selections so both are styled the same way
+      .attr("class", "histogram-bar")
       .attr("x", (d) => vis.xScale(d.x0) + 1)
       .attr("y", (d) => vis.yScale(d.length))
       .attr("width", (d) =>
         Math.max(0, vis.xScale(d.x1) - vis.xScale(d.x0) - 1)
       )
       .attr("height", (d) => vis.height - vis.yScale(d.length))
-      .attr("fill", "#60a5fa")
       .on("mouseover", (event, d) => {
         vis.tooltip
           .style("display", "block")
@@ -151,6 +216,12 @@ export class Histogram {
       });
 
     bars.exit().remove(); // remove bars with no corresponding bin (for updates/filters)
+
+    vis.brushGroup.call(vis.brush);
+    if (vis.selectedRange) {
+      vis.brushGroup.call(vis.brush.move, vis.selectionFromRange(vis.selectedRange));
+    }
+    vis.updateBrushedStyles();
   }
 
   resize(containerWidth, containerHeight) {
@@ -176,6 +247,7 @@ export class Histogram {
       .attr("x", vis.config.containerWidth / 2)
       .attr("y", vis.config.containerHeight - 10);
     vis.svg.select(".y-axis-label").attr("x", -vis.config.containerHeight / 2);
+    vis.initBrush();
     vis.updateVis();
   }
 }
