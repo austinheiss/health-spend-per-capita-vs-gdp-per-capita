@@ -287,9 +287,7 @@ Promise.all([
     applyCountryHighlights(Array.from(highlightedCountryKeys));
 
     document.querySelector("#year-display").textContent =
-      startYear === endYear
-        ? `Year displayed: ${endYear}`
-        : `Years displayed: ${startYear} - ${endYear}`;
+      startYear === endYear ? String(endYear) : `${startYear}–${endYear}`;
   };
 
   const yearBrush = new YearBrush(
