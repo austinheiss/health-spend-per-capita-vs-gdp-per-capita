@@ -237,22 +237,24 @@ export class Scatterplot {
       .attr("cx", (d) => vis.xScale(d[vis.xKey]))
       .attr("cy", (d) => vis.yScale(d[vis.yKey]))
       .attr("r", 3)
-      .attr("fill", "#2563eb")
-      .on("mouseover", (event, d) => {
+      .attr("fill", "#0891b2")
+      .on("pointerenter", (event, d) => {
         vis.tooltip
           .style("display", "block")
+          .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
+          .style("top", `${event.pageY + vis.config.tooltipPadding}px`)
           .html(
             `<strong>${d.Entity}</strong><br>` +
               `Life expectancy: ${d[vis.yKey].toFixed(2)} years<br>` +
               `Healthcare spend: ${d[vis.xKey].toFixed(2)}% GDP`
           );
       })
-      .on("mousemove", (event) => {
+      .on("pointermove", (event) => {
         vis.tooltip
           .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
           .style("top", `${event.pageY + vis.config.tooltipPadding}px`);
       })
-      .on("mouseleave", () => {
+      .on("pointerleave", () => {
         vis.tooltip.style("display", "none");
       });
 

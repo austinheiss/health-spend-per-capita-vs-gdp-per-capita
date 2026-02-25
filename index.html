@@ -10,20 +10,20 @@
 <body>
 <header>
   <h1>Life Expectancy vs Total Health Spend (% of GDP)</h1>
-  <p>Austin Heiss</p>
-  <p>
-    Data sources:
-    <a href="https://ourworldindata.org/grapher/total-healthcare-expenditure-gdp">health spend</a>
-    and
-    <a href="https://ourworldindata.org/grapher/life-expectancy-hmd-unwpp?country=FRA~ZAF~NGA~CHN">life expectancy</a>
-  </p>
+  <div class="header-meta">
+    <p>Austin Heiss</p>
+    <p>
+      Data sources:
+      <a class="link-health" href="https://ourworldindata.org/grapher/total-healthcare-expenditure-gdp">health spend</a>
+      and
+      <a class="link-life" href="https://ourworldindata.org/grapher/life-expectancy-hmd-unwpp?country=FRA~ZAF~NGA~CHN">life expectancy</a>
+    </p>
+  </div>
 </header>
 <main>
   <div id="scatter-panel" class="chart-container scatter">
     <svg id="chart"></svg>
   </div>
-  <h2 class="column-title">Healthcare expenditure (% of GDP)</h2>
-  <h2 class="column-title">Life expectancy (years)</h2>
   <div id="histogram-health-panel" class="chart-container">
     <svg id="histogram-health"></svg>
   </div>

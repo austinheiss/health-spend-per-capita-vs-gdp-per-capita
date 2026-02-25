@@ -202,16 +202,19 @@ export class Histogram {
     const hasCountrySelection = vis.highlightedCountryKeys.size > 0;
     const [rangeMin, rangeMax] = hasBrushSelection ? vis.selectedRange : [null, null];
 
+    const isGDP = vis.config.valueKey.includes("Healthcare");
+    const baseFill = isGDP ? "#16a34a" : "#2563eb";
+    const mutedFill = isGDP ? "#86efac" : "#93c5fd";
     const getBarStyle = (i) => {
       if (!hasBrushSelection && !hasCountrySelection) {
-        return { fill: "#60a5fa", opacity: 1 };
+        return { fill: baseFill, opacity: 1 };
       }
       const isHighlighted = hasBrushSelection
         ? vis.bins[i].x1 >= rangeMin && vis.bins[i].x0 <= rangeMax
         : Array.from(vis.binCountryKeySets[i] || []).some((key) =>
             vis.highlightedCountryKeys.has(key)
           );
-      return isHighlighted ? { fill: "#2563eb", opacity: 1 } : { fill: "#93c5fd", opacity: 0.35 };
+      return isHighlighted ? { fill: baseFill, opacity: 1 } : { fill: mutedFill, opacity: 0.35 };
     };
 
     vis.barsGroup.selectAll("rect").each(function (_, i) {
@@ -250,24 +253,26 @@ export class Histogram {
         Math.max(0, vis.xScale(d.x1) - vis.xScale(d.x0) - 1)
       )
       .attr("height", (d) => vis.height - vis.yScale(d.length))
-      .on("mouseover", (event, d) => {
+      .on("pointerenter", (event, d) => {
         const countryNames = d.countryNames || [];
         const countryLabel =
           countryNames.length > 0 ? countryNames.join(", ") : "No countries in bin";
         vis.tooltip
           .style("display", "block")
+          .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
+          .style("top", `${event.pageY + vis.config.tooltipPadding}px`)
           .html(
             `${vis.config.valueKey}<br>` +
               `Range: ${d.x0.toFixed(2)} - ${d.x1.toFixed(2)}<br>` +
               `Countries: ${countryLabel}`
           );
       })
-      .on("mousemove", (event) => {
+      .on("pointermove", (event) => {
         vis.tooltip
           .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
           .style("top", `${event.pageY + vis.config.tooltipPadding}px`);
       })
-      .on("mouseleave", () => {
+      .on("pointerleave", () => {
         vis.tooltip.style("display", "none");
       });
 

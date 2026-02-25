@@ -85,16 +85,14 @@ export class Chloropleth {
     // ISO code -> row lookup
     vis.rowsByCode = Object.fromEntries(vis.cleanData.map((d) => [d.Code, d]));
 
-    // map metric values to color scale
+    // map metric values to color scale: GDP = green, Life expectancy = blue
     const values = vis.cleanData.map((d) => d[vis.valueKey]);
-    if (!values.length) {
-      vis.colorScale = d3.scaleSequential(d3.interpolateBlues).domain([0, 1]);
-      vis.renderVis();
-      return;
-    }
+    const interpolator = vis.valueKey.includes("Healthcare")
+      ? d3.interpolateGreens
+      : d3.interpolateBlues;
     vis.colorScale = d3
-      .scaleSequential(d3.interpolateBlues)
-      .domain(d3.extent(values));
+      .scaleSequential(interpolator)
+      .domain(values.length ? d3.extent(values) : [0, 1]);
 
     vis.renderVis();
   }
@@ -122,7 +120,7 @@ export class Chloropleth {
       .attr("stroke-width", 0.5)
       .style("opacity", 0.9)
       .style("cursor", (d) => (getRow(d) ? "pointer" : "default"))
-      .on("mouseover", (event, d) => {
+      .on("pointerenter", (event, d) => {
         d3.select(event.currentTarget)
           .style("stroke", "black")
           .style("stroke-width", 1.5);
@@ -138,9 +136,13 @@ export class Chloropleth {
               }`
             : `<strong>${name}</strong><br>No data`;
 
-        vis.tooltip.style("display", "block").html(html);
+        vis.tooltip
+          .style("display", "block")
+          .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
+          .style("top", `${event.pageY + vis.config.tooltipPadding}px`)
+          .html(html);
       })
-      .on("mousemove", (event) => {
+      .on("pointermove", (event) => {
         vis.tooltip
           .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
           .style("top", `${event.pageY + vis.config.tooltipPadding}px`);
@@ -150,7 +152,7 @@ export class Chloropleth {
         if (!row?.Code) return;
         vis.toggleCountrySelection(row.Code);
       })
-      .on("mouseleave", () => {
+      .on("pointerleave", () => {
         vis.updateHighlightStyles();
         vis.tooltip.style("display", "none");
       });
@@ -271,7 +273,7 @@ export class Chloropleth {
       .attr("text-anchor", "end")
       .attr("dominant-baseline", "middle")
       .attr("font-size", 11)
-      .attr("fill", "#666")
+      .attr("fill", "#4b5563")
       .text(formatVal(domain[0]));
 
     legendGroup
@@ -281,7 +283,7 @@ export class Chloropleth {
       .attr("text-anchor", "end")
       .attr("dominant-baseline", "middle")
       .attr("font-size", 11)
-      .attr("fill", "#666")
+      .attr("fill", "#4b5563")
       .text(`${formatVal(domain[1])} ${suffix}`);
   }
 
