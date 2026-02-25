@@ -224,7 +224,7 @@ export class Chloropleth {
     const isHealthcare = vis.valueKey.includes("Healthcare");
     const formatVal = (v) =>
       isHealthcare ? `${v.toFixed(1)}%` : v.toFixed(1);
-    const suffix = isHealthcare ? "of GDP" : "years";
+    const suffix = isHealthcare ? "% of GDP" : "Years";
 
     // Remove existing legend elements
     vis.chart.selectAll(".chloropleth-legend").remove();
@@ -272,8 +272,8 @@ export class Chloropleth {
       .attr("y", legendY + legendHeight - 6)
       .attr("text-anchor", "end")
       .attr("dominant-baseline", "middle")
-      .attr("font-size", 11)
-      .attr("fill", "#4b5563")
+      .attr("font-size", 14)
+      .attr("fill", "#000")
       .text(formatVal(domain[0]));
 
     legendGroup
@@ -282,9 +282,19 @@ export class Chloropleth {
       .attr("y", legendY + 6)
       .attr("text-anchor", "end")
       .attr("dominant-baseline", "middle")
-      .attr("font-size", 11)
-      .attr("fill", "#4b5563")
-      .text(`${formatVal(domain[1])} ${suffix}`);
+      .attr("font-size", 14)
+      .attr("fill", "#000")
+      .text(formatVal(domain[1]));
+
+    legendGroup
+      .append("text")
+      .attr("x", legendX + legendWidth + 8)
+      .attr("y", legendY + legendHeight / 2)
+      .attr("text-anchor", "start")
+      .attr("dominant-baseline", "middle")
+      .attr("font-size", 14)
+      .attr("fill", "#000")
+      .text(suffix);
   }
 
   updateHighlightStyles() {

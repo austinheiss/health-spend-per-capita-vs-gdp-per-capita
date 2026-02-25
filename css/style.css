@@ -92,6 +92,13 @@ main {
   line-height: 1.2;
 }
 
+.chart-container .chloropleth-title {
+  margin: 0;
+  text-align: center;
+  font-weight: normal;
+  font-size: 16px;
+}
+
 .chart-container svg {
   flex: 1;
   min-height: 0;
