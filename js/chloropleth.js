@@ -288,22 +288,23 @@ export class Chloropleth {
   updateHighlightStyles() {
     const vis = this;
     const hasSelection = vis.highlightedCountryKeys.size > 0;
+    const isSelected = (d) => {
+      const code = vis.rowsByCode[d.id]?.Code;
+      return code && vis.highlightedCountryKeys.has(code);
+    };
     vis.countriesGroup
       .selectAll(".country")
       .style("opacity", (d) => {
         if (!hasSelection) return 0.9;
-        const code = vis.rowsByCode[d.id]?.Code;
-        return code && vis.highlightedCountryKeys.has(code) ? 0.95 : 0.18;
+        return isSelected(d) ? 0.95 : 0.18;
       })
       .style("stroke", (d) => {
         if (!hasSelection) return "#fff";
-        const code = vis.rowsByCode[d.id]?.Code;
-        return code && vis.highlightedCountryKeys.has(code) ? "#111827" : "#fff";
+        return isSelected(d) ? "#111827" : "#fff";
       })
       .style("stroke-width", (d) => {
         if (!hasSelection) return 0.5;
-        const code = vis.rowsByCode[d.id]?.Code;
-        return code && vis.highlightedCountryKeys.has(code) ? 1.2 : 0.5;
+        return isSelected(d) ? 1.2 : 0.5;
       });
   }
 }

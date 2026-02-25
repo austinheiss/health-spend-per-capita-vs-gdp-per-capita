@@ -241,53 +241,58 @@ Promise.all([
   );
   observeAndResize("#histogram-life-panel", "#histogram-life", histLife);
 
-  const chlorHealth = new Chloropleth(
-    {
-      parentElement: "#chloropleth-health",
-      containerWidth: 400,
-      containerHeight: 250,
-      valueKey: HEALTH_DISPLAY_KEY,
-      onSelectionChange: (countryKeys) =>
-        applyCountryHighlights(countryKeys, "map-health"),
-    },
-    data
-  );
-  observeAndResize(
-    "#chloropleth-health-panel",
+  const createChoropleth = (parentElement, panelSelector, valueKey, sourceId) => {
+    const chart = new Chloropleth(
+      {
+        parentElement,
+        containerWidth: 400,
+        containerHeight: 250,
+        valueKey,
+        onSelectionChange: (countryKeys) =>
+          applyCountryHighlights(countryKeys, sourceId),
+      },
+      data
+    );
+    observeAndResize(panelSelector, parentElement, chart);
+    return chart;
+  };
+
+  const chlorHealth = createChoropleth(
     "#chloropleth-health",
-    chlorHealth
+    "#chloropleth-health-panel",
+    HEALTH_DISPLAY_KEY,
+    "map-health"
   );
 
-  const chlorLife = new Chloropleth(
-    {
-      parentElement: "#chloropleth-life",
-      containerWidth: 400,
-      containerHeight: 250,
-      valueKey: LIFE_DISPLAY_KEY,
-      onSelectionChange: (countryKeys) =>
-        applyCountryHighlights(countryKeys, "map-life"),
-    },
-    data
+  const chlorLife = createChoropleth(
+    "#chloropleth-life",
+    "#chloropleth-life-panel",
+    LIFE_DISPLAY_KEY,
+    "map-life"
   );
-  observeAndResize("#chloropleth-life-panel", "#chloropleth-life", chlorLife);
+
+  const selectionTargets = [
+    { id: "scatter", chart: scatter },
+    { id: "hist-health", chart: histHealth },
+    { id: "hist-life", chart: histLife },
+    { id: "map-health", chart: chlorHealth },
+    { id: "map-life", chart: chlorLife },
+  ];
+
+  const yearTargets = [scatter, histHealth, histLife, chlorHealth, chlorLife];
 
   function applyCountryHighlights(countryKeys = [], source = null) {
     highlightedCountryKeys = new Set(countryKeys);
     const keys = Array.from(highlightedCountryKeys);
 
-    if (source !== "scatter") scatter.setHighlightedCountries(keys);
-    if (source !== "hist-health") histHealth.setHighlightedCountries(keys);
-    if (source !== "hist-life") histLife.setHighlightedCountries(keys);
-    if (source !== "map-health") chlorHealth.setHighlightedCountries(keys);
-    if (source !== "map-life") chlorLife.setHighlightedCountries(keys);
+    selectionTargets.forEach(({ id, chart }) => {
+      if (id === source) return;
+      chart.setHighlightedCountries(keys);
+    });
   }
 
   const applyYearRange = ([startYear, endYear]) => {
-    scatter.setYearRange(startYear, endYear);
-    histHealth.setYearRange(startYear, endYear);
-    histLife.setYearRange(startYear, endYear);
-    chlorHealth.setYearRange(startYear, endYear);
-    chlorLife.setYearRange(startYear, endYear);
+    yearTargets.forEach((chart) => chart.setYearRange(startYear, endYear));
     applyCountryHighlights(Array.from(highlightedCountryKeys));
 
     document.querySelector("#year-display").textContent =
