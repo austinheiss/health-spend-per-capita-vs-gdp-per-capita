@@ -7,6 +7,42 @@ const HEALTH_SOURCE_KEY =
 const LIFE_SOURCE_KEY = "Life expectancy at birth, totals, period";
 const HEALTH_DISPLAY_KEY = "Healthcare expenditure (% of GDP)";
 const LIFE_DISPLAY_KEY = "Life expectancy at birth (years)";
+const SPEND_PER_LIFE_KEY = "Health spend / life expectancy";
+const formatTwoDecimals = d3.format(".2f");
+
+const METRICS = [
+  {
+    id: "health",
+    key: HEALTH_DISPLAY_KEY,
+    label: "Healthcare expenditure (% of GDP)",
+    interpolator: d3.interpolateGreens,
+    baseFill: "#16a34a",
+    mutedFill: "#86efac",
+    formatValue: (value) => `${formatTwoDecimals(value)}%`,
+  },
+  {
+    id: "life",
+    key: LIFE_DISPLAY_KEY,
+    label: "Life expectancy at birth (years)",
+    interpolator: d3.interpolateBlues,
+    baseFill: "#2563eb",
+    mutedFill: "#93c5fd",
+    formatValue: (value) => `${formatTwoDecimals(value)} years`,
+  },
+  {
+    id: "spendPerLife",
+    key: SPEND_PER_LIFE_KEY,
+    label: "Health spend per life-year",
+    interpolator: d3.interpolateOranges,
+    baseFill: "#c2410c",
+    mutedFill: "#fdba74",
+    formatValue: (value) => formatTwoDecimals(value),
+  },
+];
+
+function getMetricById(id, fallback) {
+  return METRICS.find((metric) => metric.id === id) || fallback;
+}
 
 function observeAndResize(containerSelector, svgSelector, chart) {
   const containerEl = document.querySelector(containerSelector);
@@ -168,14 +204,26 @@ class YearBrush {
 }
 
 function buildCombinedDataset(healthRows, lifeRows) {
+  const isCountryCode = (code) => code != null && !String(code).startsWith("OWID_");
+
   const lifeByKey = new Map(
     lifeRows
-      .filter((d) => d.Code != null && d.Year != null && d[LIFE_SOURCE_KEY] != null)
+      .filter(
+        (d) =>
+          isCountryCode(d.Code) &&
+          d.Year != null &&
+          d[LIFE_SOURCE_KEY] != null
+      )
       .map((d) => [`${d.Code}|${d.Year}`, d])
   );
 
   return healthRows
-    .filter((d) => d.Code != null && d.Year != null && d[HEALTH_SOURCE_KEY] != null)
+    .filter(
+      (d) =>
+        isCountryCode(d.Code) &&
+        d.Year != null &&
+        d[HEALTH_SOURCE_KEY] != null
+    )
     .map((d) => {
       const matchingLife = lifeByKey.get(`${d.Code}|${d.Year}`);
       if (!matchingLife) return null;
@@ -191,21 +239,56 @@ function buildCombinedDataset(healthRows, lifeRows) {
     .sort((a, b) => a.Year - b.Year);
 }
 
+function addDerivedMetrics(rows) {
+  return rows.map((d) => {
+    const health = d[HEALTH_DISPLAY_KEY];
+    const life = d[LIFE_DISPLAY_KEY];
+
+    const next = { ...d };
+    next[SPEND_PER_LIFE_KEY] =
+      health != null && life != null && life !== 0
+        ? health / life
+        : null;
+    return next;
+  });
+}
+
+function initMetricSelect(selectEl, metrics, defaultId) {
+  metrics.forEach((metric) => {
+    const opt = document.createElement("option");
+    opt.value = metric.id;
+    opt.textContent = metric.label;
+    selectEl.appendChild(opt);
+  });
+  selectEl.value = defaultId;
+}
+
 Promise.all([
   d3.csv("./data/total-healthcare-expenditure-gdp/total-healthcare-expenditure-gdp.csv", d3.autoType),
   d3.csv("./data/life-expectancy-hmd-unwpp/life-expectancy-hmd-unwpp.csv", d3.autoType),
 ]).then(([healthRows, lifeRows]) => {
-  const data = buildCombinedDataset(healthRows, lifeRows);
+  const data = addDerivedMetrics(buildCombinedDataset(healthRows, lifeRows));
   const years = Array.from(new Set(data.map((d) => d.Year))).sort((a, b) => a - b);
   if (!years.length) return;
 
   let highlightedCountryKeys = new Set();
+  let metricA = METRICS[0];
+  let metricB = METRICS[1];
+
+  const metricASelect = document.querySelector("#metric-a");
+  const metricBSelect = document.querySelector("#metric-b");
+  initMetricSelect(metricASelect, METRICS, metricA.id);
+  initMetricSelect(metricBSelect, METRICS, metricB.id);
 
   const scatter = new Scatterplot(
     {
       parentElement: "#chart",
       containerWidth: 800,
       containerHeight: 300,
+      xKey: metricA.key,
+      yKey: metricB.key,
+      xValueFormat: metricA.formatValue,
+      yValueFormat: metricB.formatValue,
       onSelectionChange: (countryKeys) =>
         applyCountryHighlights(countryKeys, "scatter"),
     },
@@ -218,8 +301,10 @@ Promise.all([
       parentElement: "#histogram-health",
       containerWidth: 400,
       containerHeight: 200,
-      valueKey: HEALTH_DISPLAY_KEY,
+      valueKey: metricA.key,
       binCount: 18,
+      baseFill: metricA.baseFill,
+      mutedFill: metricA.mutedFill,
       onSelectionChange: (countryKeys) =>
         applyCountryHighlights(countryKeys, "hist-health"),
     },
@@ -232,8 +317,10 @@ Promise.all([
       parentElement: "#histogram-life",
       containerWidth: 400,
       containerHeight: 200,
-      valueKey: LIFE_DISPLAY_KEY,
+      valueKey: metricB.key,
       binCount: 18,
+      baseFill: metricB.baseFill,
+      mutedFill: metricB.mutedFill,
       onSelectionChange: (countryKeys) =>
         applyCountryHighlights(countryKeys, "hist-life"),
     },
@@ -241,13 +328,22 @@ Promise.all([
   );
   observeAndResize("#histogram-life-panel", "#histogram-life", histLife);
 
-  const createChoropleth = (parentElement, panelSelector, valueKey, sourceId) => {
+  const createChoropleth = (
+    parentElement,
+    panelSelector,
+    metricKey,
+    sourceId,
+    interpolator,
+    valueFormat
+  ) => {
     const chart = new Chloropleth(
       {
         parentElement,
         containerWidth: 400,
         containerHeight: 250,
-        valueKey,
+        valueKey: metricKey,
+        interpolator,
+        valueFormat,
         onSelectionChange: (countryKeys) =>
           applyCountryHighlights(countryKeys, sourceId),
       },
@@ -260,15 +356,19 @@ Promise.all([
   const chlorHealth = createChoropleth(
     "#chloropleth-health",
     "#chloropleth-health-panel",
-    HEALTH_DISPLAY_KEY,
-    "map-health"
+    metricA.key,
+    "map-health",
+    metricA.interpolator,
+    metricA.formatValue
   );
 
   const chlorLife = createChoropleth(
     "#chloropleth-life",
     "#chloropleth-life-panel",
-    LIFE_DISPLAY_KEY,
-    "map-life"
+    metricB.key,
+    "map-life",
+    metricB.interpolator,
+    metricB.formatValue
   );
 
   const selectionTargets = [
@@ -299,6 +399,43 @@ Promise.all([
       startYear === endYear ? String(endYear) : `${startYear}–${endYear}`;
   };
 
+  function applyMetricChange() {
+    document.querySelector("#scatter-title").textContent =
+      `${metricB.label} vs ${metricA.label}`;
+    document.querySelector("#histogram-health-title").textContent = metricA.label;
+    document.querySelector("#histogram-life-title").textContent = metricB.label;
+    document.querySelector("#chloropleth-health-title").textContent = metricA.label;
+    document.querySelector("#chloropleth-life-title").textContent = metricB.label;
+
+    scatter.setMetrics({
+      xKey: metricA.key,
+      yKey: metricB.key,
+      xValueFormat: metricA.formatValue,
+      yValueFormat: metricB.formatValue,
+    });
+    histHealth.setMetric({
+      valueKey: metricA.key,
+      baseFill: metricA.baseFill,
+      mutedFill: metricA.mutedFill,
+    });
+    histLife.setMetric({
+      valueKey: metricB.key,
+      baseFill: metricB.baseFill,
+      mutedFill: metricB.mutedFill,
+    });
+    chlorHealth.setMetric({
+      valueKey: metricA.key,
+      interpolator: metricA.interpolator,
+      valueFormat: metricA.formatValue,
+    });
+    chlorLife.setMetric({
+      valueKey: metricB.key,
+      interpolator: metricB.interpolator,
+      valueFormat: metricB.formatValue,
+    });
+    applyCountryHighlights(Array.from(highlightedCountryKeys));
+  }
+
   const yearBrush = new YearBrush(
     { parentElement: "#year-brush", containerWidth: 90, containerHeight: 500 },
     years,
@@ -306,6 +443,16 @@ Promise.all([
   );
   observeAndResize("#year-brush-panel", "#year-brush", yearBrush);
 
+  metricASelect.addEventListener("change", () => {
+    metricA = getMetricById(metricASelect.value, metricA);
+    applyMetricChange();
+  });
+  metricBSelect.addEventListener("change", () => {
+    metricB = getMetricById(metricBSelect.value, metricB);
+    applyMetricChange();
+  });
+
   const initialYear = years[years.length - 1];
   applyYearRange([initialYear, initialYear]);
+  applyMetricChange();
 });

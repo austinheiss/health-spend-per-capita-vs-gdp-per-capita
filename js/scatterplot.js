@@ -10,8 +10,10 @@ export class Scatterplot {
     };
 
     this.data = data;
-    this.xKey = "Healthcare expenditure (% of GDP)";
-    this.yKey = "Life expectancy at birth (years)";
+    this.xKey = config.xKey || "Healthcare expenditure (% of GDP)";
+    this.yKey = config.yKey || "Life expectancy at birth (years)";
+    this.xValueFormat = config.xValueFormat || ((value) => d3.format(".2f")(value));
+    this.yValueFormat = config.yValueFormat || ((value) => d3.format(".2f")(value));
     this.yearRange = null;
     this.selectionMode = "none";
     this.selectedPointKeys = new Set();
@@ -19,6 +21,22 @@ export class Scatterplot {
     this.isProgrammaticBrushMove = false;
 
     this.initVis();
+  }
+
+  setMetrics({ xKey, yKey, xValueFormat, yValueFormat }) {
+    this.xKey = xKey;
+    this.yKey = yKey;
+    if (typeof xValueFormat === "function") this.xValueFormat = xValueFormat;
+    if (typeof yValueFormat === "function") this.yValueFormat = yValueFormat;
+
+    // Metric changes keep selected countries but drop geometric point selection.
+    if (this.selectionMode === "points") {
+      this.selectionMode = "countries";
+      this.selectedPointKeys = new Set();
+    }
+    this.svg.select(".x-axis-label").text(this.xKey);
+    this.svg.select(".y-axis-label").text(this.yKey);
+    this.updateVis();
   }
 
   initVis() {
@@ -245,8 +263,8 @@ export class Scatterplot {
           .style("top", `${event.pageY + vis.config.tooltipPadding}px`)
           .html(
             `<strong>${d.Entity}</strong><br>` +
-              `Life expectancy: ${d[vis.yKey].toFixed(2)} years<br>` +
-              `Healthcare spend: ${d[vis.xKey].toFixed(2)}% GDP`
+              `${vis.yKey}: ${vis.yValueFormat(d[vis.yKey])}<br>` +
+              `${vis.xKey}: ${vis.xValueFormat(d[vis.xKey])}`
           );
       })
       .on("pointermove", (event) => {

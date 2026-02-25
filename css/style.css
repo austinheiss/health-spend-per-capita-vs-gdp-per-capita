@@ -51,6 +51,29 @@ header {
   margin: 0;
 }
 
+.metric-controls {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.metric-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.metric-control select {
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+}
+
 .link-health {
   color: #16a34a;
 }
@@ -91,12 +114,13 @@ main {
   margin: 0 0 4px;
   font-size: 14px;
   line-height: 1.2;
+  text-align: center;
 }
 
 .chart-container .chloropleth-title {
   margin: 0;
   text-align: center;
-  font-weight: normal;
+  font-weight: 700;
   font-size: 16px;
 }
 
@@ -154,17 +178,5 @@ main {
 .year-brush-g .selection {
   fill: #93c5fd;
   fill-opacity: 0.35;
-  stroke: #2563eb;
-}
-
-#histogram-health .selection {
-  fill: #86efac;
-  fill-opacity: 0.2;
-  stroke: #16a34a;
-}
-
-#histogram-life .selection {
-  fill: #93c5fd;
-  fill-opacity: 0.2;
   stroke: #2563eb;
 }

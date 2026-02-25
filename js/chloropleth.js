@@ -7,6 +7,8 @@ export class Chloropleth {
       margin: config.margin || { top: 20, right: 20, bottom: 20, left: 20 },
       tooltipPadding: config.tooltipPadding || 12,
       onSelectionChange: config.onSelectionChange || null,
+      interpolator: config.interpolator || d3.interpolateGreens,
+      valueFormat: config.valueFormat || ((value) => d3.format(".2f")(value)),
     };
 
     this.data = data;
@@ -16,6 +18,17 @@ export class Chloropleth {
     this.gradientId = `chloropleth-gradient-${this.config.parentElement.replace("#", "")}`;
 
     this.initVis();
+  }
+
+  setMetric({ valueKey, interpolator, valueFormat }) {
+    this.valueKey = valueKey;
+    if (typeof interpolator === "function") {
+      this.config.interpolator = interpolator;
+    }
+    if (typeof valueFormat === "function") {
+      this.config.valueFormat = valueFormat;
+    }
+    this.updateVis();
   }
 
   initVis() {
@@ -85,13 +98,10 @@ export class Chloropleth {
     // ISO code -> row lookup
     vis.rowsByCode = Object.fromEntries(vis.cleanData.map((d) => [d.Code, d]));
 
-    // map metric values to color scale: GDP = green, Life expectancy = blue
+    // map the active metric values to the currently configured color interpolator
     const values = vis.cleanData.map((d) => d[vis.valueKey]);
-    const interpolator = vis.valueKey.includes("Healthcare")
-      ? d3.interpolateGreens
-      : d3.interpolateBlues;
     vis.colorScale = d3
-      .scaleSequential(interpolator)
+      .scaleSequential(vis.config.interpolator)
       .domain(values.length ? d3.extent(values) : [0, 1]);
 
     vis.renderVis();
@@ -129,11 +139,7 @@ export class Chloropleth {
         const name = d.properties?.name || d.id;
         const html =
           value != null
-            ? `<strong>${row.Entity}</strong><br>${
-                vis.valueKey.includes("Life expectancy")
-                  ? `Life expectancy: ${value.toFixed(1)} years`
-                  : `Healthcare expenditure: ${value.toFixed(2)}% of GDP`
-              }`
+            ? `<strong>${row.Entity}</strong><br>${vis.valueKey}: ${vis.config.valueFormat(value)}`
             : `<strong>${name}</strong><br>No data`;
 
         vis.tooltip
@@ -221,11 +227,6 @@ export class Chloropleth {
     const legendY = Math.max(18, (vis.height - legendHeight) / 2);
 
     const domain = vis.colorScale.domain();
-    const isHealthcare = vis.valueKey.includes("Healthcare");
-    const formatVal = (v) =>
-      isHealthcare ? `${v.toFixed(1)}%` : v.toFixed(1);
-    const suffix = isHealthcare ? "% of GDP" : "Years";
-
     // Remove existing legend elements
     vis.chart.selectAll(".chloropleth-legend").remove();
 
@@ -274,7 +275,7 @@ export class Chloropleth {
       .attr("dominant-baseline", "middle")
       .attr("font-size", 14)
       .attr("fill", "#000")
-      .text(formatVal(domain[0]));
+      .text(vis.config.valueFormat(domain[0]));
 
     legendGroup
       .append("text")
@@ -284,17 +285,7 @@ export class Chloropleth {
       .attr("dominant-baseline", "middle")
       .attr("font-size", 14)
       .attr("fill", "#000")
-      .text(formatVal(domain[1]));
-
-    legendGroup
-      .append("text")
-      .attr("x", legendX + legendWidth + 8)
-      .attr("y", legendY + legendHeight / 2)
-      .attr("text-anchor", "start")
-      .attr("dominant-baseline", "middle")
-      .attr("font-size", 14)
-      .attr("fill", "#000")
-      .text(suffix);
+      .text(vis.config.valueFormat(domain[1]));
   }
 
   updateHighlightStyles() {

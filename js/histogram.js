@@ -9,6 +9,8 @@ export class Histogram {
       binCount: config.binCount || 20,
       tooltipPadding: config.tooltipPadding || 12,
       onSelectionChange: config.onSelectionChange || null,
+      baseFill: config.baseFill || "#16a34a",
+      mutedFill: config.mutedFill || "#86efac",
     };
 
     this.data = data;
@@ -77,6 +79,20 @@ export class Histogram {
     vis.initBrush();
 
     vis.updateVis(); // trigger initial data processing and rendering
+  }
+
+  setMetric({ valueKey, baseFill, mutedFill }) {
+    const vis = this;
+    vis.config.valueKey = valueKey;
+    if (baseFill) vis.config.baseFill = baseFill;
+    if (mutedFill) vis.config.mutedFill = mutedFill;
+    // Numeric range selection doesn't translate across metric changes.
+    vis.selectedRange = null;
+    vis.svg.select(".x-axis-label").text(vis.config.valueKey);
+    vis.isProgrammaticBrushMove = true;
+    vis.brushGroup.call(vis.brush.move, null);
+    vis.isProgrammaticBrushMove = false;
+    vis.updateVis();
   }
 
   updateVis() {
@@ -205,9 +221,8 @@ export class Histogram {
     const hasCountrySelection = vis.highlightedCountryKeys.size > 0;
     const [rangeMin, rangeMax] = hasBrushSelection ? vis.selectedRange : [null, null];
 
-    const isGDP = vis.config.valueKey.includes("Healthcare");
-    const baseFill = isGDP ? "#16a34a" : "#2563eb";
-    const mutedFill = isGDP ? "#86efac" : "#93c5fd";
+    const baseFill = vis.config.baseFill;
+    const mutedFill = vis.config.mutedFill;
     const getBarStyle = (i) => {
       if (!hasBrushSelection && !hasCountrySelection) {
         return { fill: baseFill, opacity: 1 };
@@ -226,14 +241,21 @@ export class Histogram {
     });
   }
 
+  updateBrushSelectionStyle() {
+    const vis = this;
+    vis.brushGroup
+      .selectAll(".selection")
+      .attr("fill", vis.config.mutedFill)
+      .attr("fill-opacity", 0.2)
+      .attr("stroke", vis.config.baseFill);
+  }
+
   setHighlightedCountries(countryKeys) {
     this.highlightedCountryKeys = new Set(countryKeys || []);
     this.selectedRange = null;
-    if (this.brushGroup && this.brush) {
-      this.isProgrammaticBrushMove = true;
-      this.brushGroup.call(this.brush.move, null);
-      this.isProgrammaticBrushMove = false;
-    }
+    this.isProgrammaticBrushMove = true;
+    this.brushGroup.call(this.brush.move, null);
+    this.isProgrammaticBrushMove = false;
     this.updateBrushedStyles();
   }
 
@@ -285,6 +307,7 @@ export class Histogram {
     if (vis.selectedRange) {
       vis.brushGroup.call(vis.brush.move, vis.selectionFromRange(vis.selectedRange));
     }
+    vis.updateBrushSelectionStyle();
     vis.updateBrushedStyles();
   }
 
