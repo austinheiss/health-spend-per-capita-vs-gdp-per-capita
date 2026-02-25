@@ -247,6 +247,8 @@ Promise.all([
       containerWidth: 400,
       containerHeight: 250,
       valueKey: HEALTH_DISPLAY_KEY,
+      onSelectionChange: (countryKeys) =>
+        applyCountryHighlights(countryKeys, "map-health"),
     },
     data
   );
@@ -262,6 +264,8 @@ Promise.all([
       containerWidth: 400,
       containerHeight: 250,
       valueKey: LIFE_DISPLAY_KEY,
+      onSelectionChange: (countryKeys) =>
+        applyCountryHighlights(countryKeys, "map-life"),
     },
     data
   );
@@ -274,8 +278,8 @@ Promise.all([
     if (source !== "scatter") scatter.setHighlightedCountries(keys);
     if (source !== "hist-health") histHealth.setHighlightedCountries(keys);
     if (source !== "hist-life") histLife.setHighlightedCountries(keys);
-    chlorHealth.setHighlightedCountries(keys);
-    chlorLife.setHighlightedCountries(keys);
+    if (source !== "map-health") chlorHealth.setHighlightedCountries(keys);
+    if (source !== "map-life") chlorLife.setHighlightedCountries(keys);
   }
 
   const applyYearRange = ([startYear, endYear]) => {

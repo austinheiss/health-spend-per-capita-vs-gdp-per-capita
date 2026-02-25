@@ -6,6 +6,7 @@ export class Chloropleth {
       containerHeight: config.containerHeight || 550,
       margin: config.margin || { top: 20, right: 20, bottom: 20, left: 20 },
       tooltipPadding: config.tooltipPadding || 12,
+      onSelectionChange: config.onSelectionChange || null,
     };
 
     this.data = data;
@@ -120,10 +121,9 @@ export class Chloropleth {
       .attr("stroke", "#fff")
       .attr("stroke-width", 0.5)
       .style("opacity", 0.9)
+      .style("cursor", (d) => (getRow(d) ? "pointer" : "default"))
       .on("mouseover", (event, d) => {
-        vis.countriesGroup.selectAll(".country").style("opacity", 0.5);
         d3.select(event.currentTarget)
-          .style("opacity", 1)
           .style("stroke", "black")
           .style("stroke-width", 1.5);
         const row = getRow(d);
@@ -145,6 +145,11 @@ export class Chloropleth {
           .style("left", `${event.pageX + vis.config.tooltipPadding}px`)
           .style("top", `${event.pageY + vis.config.tooltipPadding}px`);
       })
+      .on("click", (event, d) => {
+        const row = getRow(d);
+        if (!row?.Code) return;
+        vis.toggleCountrySelection(row.Code);
+      })
       .on("mouseleave", () => {
         vis.updateHighlightStyles();
         vis.tooltip.style("display", "none");
@@ -165,6 +170,22 @@ export class Chloropleth {
   setHighlightedCountries(countryKeys) {
     this.highlightedCountryKeys = new Set(countryKeys || []);
     this.updateHighlightStyles();
+  }
+
+  emitSelectionChange() {
+    if (typeof this.config.onSelectionChange !== "function") return;
+    this.config.onSelectionChange(Array.from(this.highlightedCountryKeys));
+  }
+
+  toggleCountrySelection(countryCode) {
+    if (!countryCode) return;
+    if (this.highlightedCountryKeys.has(countryCode)) {
+      this.highlightedCountryKeys.delete(countryCode);
+    } else {
+      this.highlightedCountryKeys.add(countryCode);
+    }
+    this.updateHighlightStyles();
+    this.emitSelectionChange();
   }
 
   resize(containerWidth, containerHeight) {
