@@ -202,32 +202,22 @@ export class Histogram {
     const hasCountrySelection = vis.highlightedCountryKeys.size > 0;
     const [rangeMin, rangeMax] = hasBrushSelection ? vis.selectedRange : [null, null];
 
-    vis.barsGroup
-      .selectAll("rect")
-      .attr("fill", (_, i) => {
-        if (!hasBrushSelection && !hasCountrySelection) return "#60a5fa";
-        if (hasBrushSelection) {
-          const bin = vis.bins[i];
-          const overlapsRange = bin.x1 >= rangeMin && bin.x0 <= rangeMax;
-          return overlapsRange ? "#2563eb" : "#93c5fd";
-        }
-        const hasHighlightedCountryInBin = Array.from(vis.binCountryKeySets[i] || []).some(
-          (key) => vis.highlightedCountryKeys.has(key)
-        );
-        return hasHighlightedCountryInBin ? "#2563eb" : "#93c5fd";
-      })
-      .attr("opacity", (_, i) => {
-        if (!hasBrushSelection && !hasCountrySelection) return 1;
-        if (hasBrushSelection) {
-          const bin = vis.bins[i];
-          const overlapsRange = bin.x1 >= rangeMin && bin.x0 <= rangeMax;
-          return overlapsRange ? 1 : 0.35;
-        }
-        const hasHighlightedCountryInBin = Array.from(vis.binCountryKeySets[i] || []).some(
-          (key) => vis.highlightedCountryKeys.has(key)
-        );
-        return hasHighlightedCountryInBin ? 1 : 0.35;
-      });
+    const getBarStyle = (i) => {
+      if (!hasBrushSelection && !hasCountrySelection) {
+        return { fill: "#60a5fa", opacity: 1 };
+      }
+      const isHighlighted = hasBrushSelection
+        ? vis.bins[i].x1 >= rangeMin && vis.bins[i].x0 <= rangeMax
+        : Array.from(vis.binCountryKeySets[i] || []).some((key) =>
+            vis.highlightedCountryKeys.has(key)
+          );
+      return isHighlighted ? { fill: "#2563eb", opacity: 1 } : { fill: "#93c5fd", opacity: 0.35 };
+    };
+
+    vis.barsGroup.selectAll("rect").each(function (_, i) {
+      const { fill, opacity } = getBarStyle(i);
+      d3.select(this).attr("fill", fill).attr("opacity", opacity);
+    });
   }
 
   setHighlightedCountries(countryKeys) {
