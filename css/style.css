@@ -69,7 +69,7 @@ main {
   gap: 4px 12px;
   padding: 4px;
   align-items: stretch;
-  max-width: 1400px;
+  max-width: 1600px;
   max-height: 900px;
   margin: 0 auto;
   width: 100%;
@@ -96,6 +96,12 @@ main {
   flex: 1;
   min-height: 0;
   width: 100%;
+}
+
+#chart {
+  max-width: 1000px;
+  display: block;
+  margin: 0 auto;
 }
 
 .chart-container.year-brush {
