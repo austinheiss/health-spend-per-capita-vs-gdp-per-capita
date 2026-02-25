@@ -110,10 +110,15 @@ export class Histogram {
     vis.binCountryKeySets = vis.bins.map((bin, i) => {
       const isLastBin = i === vis.bins.length - 1;
       const keys = new Set();
+      const names = new Set();
       vis.cleanRows.forEach(({ row, value }) => {
         const inBin = value >= bin.x0 && (isLastBin ? value <= bin.x1 : value < bin.x1);
-        if (inBin) keys.add(row.Code || row.Entity);
+        if (inBin) {
+          keys.add(row.Code || row.Entity);
+          names.add(row.Entity || row.Code);
+        }
       });
+      bin.countryNames = Array.from(names).sort((a, b) => a.localeCompare(b));
       return keys;
     });
 
@@ -256,12 +261,15 @@ export class Histogram {
       )
       .attr("height", (d) => vis.height - vis.yScale(d.length))
       .on("mouseover", (event, d) => {
+        const countryNames = d.countryNames || [];
+        const countryLabel =
+          countryNames.length > 0 ? countryNames.join(", ") : "No countries in bin";
         vis.tooltip
           .style("display", "block")
           .html(
             `${vis.config.valueKey}<br>` +
               `Range: ${d.x0.toFixed(2)} - ${d.x1.toFixed(2)}<br>` +
-              `Countries: ${d.length}`
+              `Countries: ${countryLabel}`
           );
       })
       .on("mousemove", (event) => {
