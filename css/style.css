@@ -1,9 +1,12 @@
 #tooltip {
   position: absolute;
   display: none;
-  background: #fff;
+  background: rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   box-shadow: 3px 3px 3px 0px rgb(92 92 92 / 0.5);
   border: 1px solid #ddd;
+  border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
   padding: 8px;
