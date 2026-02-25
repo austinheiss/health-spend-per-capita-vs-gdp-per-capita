@@ -167,6 +167,9 @@ export class Histogram {
           return;
         }
 
+        // A manual histogram brush becomes the active filter source,
+        // so clear any prior map-driven country highlight state.
+        vis.highlightedCountryKeys = new Set();
         const nextRange = vis.rangeFromSelection(event.selection);
         vis.selectedRange = nextRange;
         vis.updateBrushedStyles();
