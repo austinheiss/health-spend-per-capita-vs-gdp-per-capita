@@ -2,6 +2,8 @@
 
 An interactive D3.js dashboard for exploring the relationship between healthcare spending (as a share of GDP) and life expectancy, across countries and across time (2000–2022 in the combined dataset).
 
+[View site demo here](https://youtu.be/nUyU-cw2V-Q)
+
 ## Motivation
 
 Spending more on healthcare sounds like it should translate into longer lives, but it is not obvious that spending a larger *share of GDP* necessarily correlates with better outcomes. This dashboard lets you explore that tradeoff visually, compare countries, and spot patterns and outliers using multiple coordinated views (scatter plot, histograms, and choropleth maps). A vertical year brush makes it easy to see how the relationship changes over time.
